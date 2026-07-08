@@ -1,10 +1,16 @@
-# RTT_T2 v1.0.1
+# RTT_T2 v1.0.2
 
 [English](README_EN.md) | 中文
 
 基于 [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2) fork 的 Windows 嵌入式调试工具，面向 **J-Link RTT** 与 **串口** 日志查看、交互终端、数据发送和波形观察。
 
 > 发行版与更新见 [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
+
+## v1.0.2 更新
+
+- **Windows MSI 安装包**：GitHub Releases 提供 MSI，安装时可选择目录
+- **GitHub 自动更新**：启动时检测 GitHub 最新版，Windows 优先下载 MSI
+- **安装版数据目录**：配置与日志保存在 `%LOCALAPPDATA%\rtt_t2\`
 
 ## v1.0.1 更新
 
@@ -112,6 +118,12 @@ build.bat
 ```
 
 输出目录：`dist\rtt_t2\`，请运行其中的 `rtt_t2.exe`（需保留整个文件夹）。
+
+**Windows MSI 安装包**（GitHub Releases 提供）支持选择安装目录；配置与日志保存在 `%LOCALAPPDATA%\rtt_t2\`，升级安装不会覆盖个人设置。
+
+## 自动更新
+
+启动时若 `config.json` 中 `update_flag` 为 `true`，会通过 GitHub Releases 检测新版本。Windows 优先下载 MSI 安装包，下载完成后自动打开安装程序。
 
 ## 目录结构
 

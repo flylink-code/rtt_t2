@@ -1,9 +1,10 @@
 import os
 import json
+import shutil
 import sys
 
 from app.chip_catalog import DEFAULT_CHIP_CATALOG, normalize_chip_config
-from app.release_info import LOG_DIR_NAME
+from app.release_info import APP_DATA_DIR_NAME, LOG_DIR_NAME
 
 DEPRECATED_CONFIG_KEYS = (
     "jk_debug_run",
@@ -69,14 +70,45 @@ DEFAULT_CONFIG = {
     "log_save_dir": "",
 }
 
-def get_app_dir():
+def get_install_dir():
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
+def is_frozen_app():
+    return getattr(sys, 'frozen', False)
+
+def get_app_dir():
+    return get_install_dir()
+
+def get_user_data_dir():
+    if is_frozen_app():
+        base = os.environ.get('LOCALAPPDATA') or os.environ.get('APPDATA') or os.path.expanduser('~')
+        path = os.path.join(base, APP_DATA_DIR_NAME)
+        os.makedirs(path, exist_ok=True)
+        return path
+    return get_install_dir()
+
+def _migrate_user_data_from_install_dir():
+    if not is_frozen_app():
+        return
+    install_dir = get_install_dir()
+    user_dir = get_user_data_dir()
+    old_config = os.path.join(install_dir, 'config.json')
+    new_config = os.path.join(user_dir, 'config.json')
+    if os.path.isfile(old_config) and not os.path.isfile(new_config):
+        shutil.copy2(old_config, new_config)
+    old_logs = os.path.join(install_dir, LOG_DIR_NAME)
+    new_logs = os.path.join(user_dir, LOG_DIR_NAME)
+    if os.path.isdir(old_logs) and not os.path.exists(new_logs):
+        shutil.move(old_logs, new_logs)
+    old_legacy_logs = os.path.join(install_dir, 'aaa_log')
+    if os.path.isdir(old_legacy_logs) and not os.path.exists(new_logs):
+        shutil.move(old_legacy_logs, new_logs)
+
 def get_config_path():
-    return os.path.join(get_app_dir(), 'config.json')
+    return os.path.join(get_user_data_dir(), 'config.json')
 
 def get_log_dir():
-    return os.path.join(get_app_dir(), LOG_DIR_NAME)
+    return os.path.join(get_user_data_dir(), LOG_DIR_NAME)
 
 def normalize_rtt_block_address(addresses):
     if not isinstance(addresses, list) or len(addresses) < 2:
@@ -97,7 +129,7 @@ def parse_rtt_search_values(addresses):
 
 def ensure_log_dir():
     log_dir = get_log_dir()
-    legacy_dir = os.path.join(get_app_dir(), 'aaa_log')
+    legacy_dir = os.path.join(get_user_data_dir(), 'aaa_log')
     if os.path.isdir(legacy_dir) and not os.path.exists(log_dir):
         os.rename(legacy_dir, log_dir)
     if not os.path.exists(log_dir):
@@ -130,5 +162,6 @@ def save_config(config):
         json.dump(config, f, indent=4, ensure_ascii=False)
 
 def initialize_app_environment():
+    _migrate_user_data_from_install_dir()
     load_config()
     return ensure_log_dir()

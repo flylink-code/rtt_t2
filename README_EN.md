@@ -1,10 +1,16 @@
-# RTT_T2 v1.0.1
+# RTT_T2 v1.0.2
 
 English | [中文](README.md)
 
 A Windows debugging tool (forked from [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2)) for **J-Link RTT** and **serial** logging, interactive terminals, payload sending, and live waveforms.
 
 > Downloads: [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
+
+## v1.0.2
+
+- **Windows MSI installer** on GitHub Releases with custom install directory
+- **GitHub auto-update** on startup; Windows prefers MSI downloads
+- **Per-user data** in `%LOCALAPPDATA%\rtt_t2\` for installed builds
 
 ## v1.0.1
 
@@ -109,6 +115,12 @@ build.bat
 ```
 
 Output: `dist\rtt_t2\` — run `rtt_t2.exe` inside that folder (keep the whole directory).
+
+**Windows MSI** installers on GitHub Releases support a custom install directory. Config and logs live in `%LOCALAPPDATA%\rtt_t2\` so upgrades keep your settings.
+
+## Auto-update
+
+When `update_flag` is `true`, the app checks GitHub Releases on startup. On Windows it prefers the MSI asset and opens the installer after download.
 
 ## Project layout
 

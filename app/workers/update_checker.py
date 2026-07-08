@@ -4,19 +4,40 @@ import sys
 import requests
 from PySide6.QtCore import QObject, QThread, Signal
 
-from app.release_info import GITHUB_RELEASES_API, is_newer_version
+from app.release_info import (
+    GITHUB_API_HEADERS,
+    GITHUB_LATEST_RELEASE_API,
+    GITHUB_RELEASES_API,
+    is_newer_version,
+)
 
 
 def _fetch_latest_release():
+    try:
+        response = requests.get(
+            GITHUB_LATEST_RELEASE_API,
+            timeout=10,
+            headers=GITHUB_API_HEADERS,
+        )
+        if response.status_code == 404:
+            raise RuntimeError('no latest release')
+        response.raise_for_status()
+        release = response.json()
+        if release.get('draft'):
+            raise RuntimeError('latest release is draft')
+        return release
+    except Exception as exc:
+        log.info('latest release lookup failed, falling back to release list: %s', exc)
+
     response = requests.get(
         GITHUB_RELEASES_API,
         timeout=10,
-        headers={'Accept': 'application/vnd.github+json'},
+        headers=GITHUB_API_HEADERS,
     )
     response.raise_for_status()
     releases = response.json()
     for release in releases:
-        if release.get('draft'):
+        if release.get('draft') or release.get('prerelease'):
             continue
         tag_name = release.get('tag_name', '')
         if tag_name:
@@ -28,15 +49,21 @@ def pick_release_asset(release):
     assets = release.get('assets', [])
     if not assets:
         return None
+
     if sys.platform.startswith('win'):
-        platform_key = 'windows'
-        extension = '.zip'
-    else:
-        platform_key = 'linux'
-        extension = '.tar.gz'
+        candidates = [
+            asset for asset in assets
+            if 'windows' in asset.get('name', '').lower()
+        ]
+        for extension in ('.msi', '.zip'):
+            for asset in candidates:
+                if asset.get('name', '').lower().endswith(extension):
+                    return asset
+        return candidates[0] if candidates else assets[0]
+
     for asset in assets:
         name = asset.get('name', '').lower()
-        if platform_key in name and name.endswith(extension):
+        if 'linux' in name and name.endswith('.tar.gz'):
             return asset
     return assets[0]
 
@@ -83,7 +110,12 @@ class DownloadWorker(QThread):
             os.makedirs(download_dir, exist_ok=True)
             download_url = asset['browser_download_url']
             filename = os.path.join(download_dir, asset['name'])
-            response = requests.get(download_url, timeout=30, stream=True)
+            response = requests.get(
+                download_url,
+                timeout=60,
+                stream=True,
+                headers=GITHUB_API_HEADERS,
+            )
             response.raise_for_status()
             total_size = int(response.headers.get('Content-Length', 0))
             downloaded = 0
