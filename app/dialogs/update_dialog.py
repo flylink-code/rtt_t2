@@ -25,7 +25,7 @@ class UpdateDialog(QDialog):
         layout = QVBoxLayout(self)
         ver_info = '软件更新: ' + latest_release['tag_name'] + '\n' + latest_release.get('body', '')
         if sys.platform.startswith('win'):
-            ver_info += '\n\nWindows 将优先下载 MSI 安装包，安装时可选择目录。'
+            ver_info += '\n\nWindows 将优先下载 MSI 或安装程序（支持选择安装目录）。'
         self.info_label = QLabel(ver_info.replace('\r\n', '\n'))
         self.info_label.setWordWrap(True)
         layout.addWidget(self.info_label)

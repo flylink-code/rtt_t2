@@ -119,11 +119,16 @@ build.bat
 
 输出目录：`dist\rtt_t2\`，请运行其中的 `rtt_t2.exe`（需保留整个文件夹）。
 
-**Windows MSI 安装包**（GitHub Releases 提供）支持选择安装目录；配置与日志保存在 `%LOCALAPPDATA%\rtt_t2\`，升级安装不会覆盖个人设置。
+**Windows 安装包**（GitHub Releases）：
+- `*-windows-x64-setup.exe`：安装向导，**可选择安装目录**（推荐）
+- `*-windows-x64.msi`：MSI 安装包（若提供）
+- `*-windows-x64.zip`：绿色免安装版
+
+配置与日志保存在 `%LOCALAPPDATA%\rtt_t2\`，升级不会覆盖个人设置。
 
 ## 自动更新
 
-启动时若 `config.json` 中 `update_flag` 为 `true`，会通过 GitHub Releases 检测新版本。Windows 优先下载 MSI 安装包，下载完成后自动打开安装程序。
+启动时若 `config.json` 中 `update_flag` 为 `true`，会通过 **GitHub Releases API** 检测是否有新版本（对比 `flylink-code/rtt_t2` 仓库 tag）。Windows 优先下载 MSI，其次 setup.exe，下载完成后自动打开安装程序。
 
 ## 目录结构
 

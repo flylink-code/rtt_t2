@@ -116,11 +116,16 @@ build.bat
 
 Output: `dist\rtt_t2\` — run `rtt_t2.exe` inside that folder (keep the whole directory).
 
-**Windows MSI** installers on GitHub Releases support a custom install directory. Config and logs live in `%LOCALAPPDATA%\rtt_t2\` so upgrades keep your settings.
+**Windows installers** on GitHub Releases:
+- `*-windows-x64-setup.exe` — wizard with **custom install directory** (recommended)
+- `*-windows-x64.msi` — MSI package (when available)
+- `*-windows-x64.zip` — portable build
+
+Config and logs live in `%LOCALAPPDATA%\rtt_t2\`.
 
 ## Auto-update
 
-When `update_flag` is `true`, the app checks GitHub Releases on startup. On Windows it prefers the MSI asset and opens the installer after download.
+When `update_flag` is `true`, the app queries **GitHub Releases** (`flylink-code/rtt_t2`) for a newer tag on startup. Windows prefers MSI, then setup.exe; the installer opens after download.
 
 ## Project layout
 

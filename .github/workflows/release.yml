@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. v1.0.1)'
+        description: 'Release tag (e.g. v1.0.2)'
         required: true
-        default: 'v1.0.1'
+        default: 'v1.0.2'
 
 permissions:
   contents: write
@@ -24,13 +24,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install WiX Toolset
+      - name: Install packaging tools
         shell: pwsh
         run: |
-          if (-not (Test-Path "${env:ProgramFiles(x86)}\WiX Toolset v3.14\bin\heat.exe") -and `
-              -not (Test-Path "$env:ProgramFiles\WiX Toolset v3.14\bin\heat.exe")) {
-            choco install wixtoolset --version=3.14.1 -y --no-progress
-          }
+          choco install wixtoolset --version=3.14.1 -y --no-progress
+          choco install innosetup -y --no-progress
 
       - name: Build Windows zip package
         shell: pwsh
@@ -40,9 +38,16 @@ jobs:
 
       - name: Build Windows MSI installer
         shell: pwsh
+        continue-on-error: true
         env:
           RTT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
         run: ./scripts/build_msi.ps1
+
+      - name: Build Windows setup installer
+        shell: pwsh
+        env:
+          RTT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: ./scripts/build_inno.ps1
 
       - name: Collect Windows artifacts
         shell: pwsh
@@ -51,11 +56,10 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path artifacts/windows | Out-Null
           Copy-Item "dist/rtt_t2-$env:RTT_VERSION-windows-x64.zip" artifacts/windows/
+          Copy-Item "dist/rtt_t2-$env:RTT_VERSION-windows-x64-setup.exe" artifacts/windows/
           $msi = "dist/rtt_t2-$env:RTT_VERSION-windows-x64.msi"
           if (Test-Path $msi) {
             Copy-Item $msi artifacts/windows/
-          } else {
-            Write-Warning "MSI not built; release will include zip only."
           }
 
       - uses: actions/upload-artifact@v4

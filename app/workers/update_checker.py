@@ -55,10 +55,18 @@ def pick_release_asset(release):
             asset for asset in assets
             if 'windows' in asset.get('name', '').lower()
         ]
-        for extension in ('.msi', '.zip'):
-            for asset in candidates:
-                if asset.get('name', '').lower().endswith(extension):
-                    return asset
+        for asset in candidates:
+            name = asset.get('name', '').lower()
+            if name.endswith('.msi'):
+                return asset
+        for asset in candidates:
+            name = asset.get('name', '').lower()
+            if name.endswith('.exe') and 'setup' in name:
+                return asset
+        for asset in candidates:
+            name = asset.get('name', '').lower()
+            if name.endswith('.zip'):
+                return asset
         return candidates[0] if candidates else assets[0]
 
     for asset in assets:
