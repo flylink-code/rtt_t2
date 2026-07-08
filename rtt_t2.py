@@ -184,12 +184,6 @@ def hw_config_dialog(js_cfg):
                   sg.T('speed(kHz)'), sg.In(jk_speed, key='jk_speed', size=(5, 1)),
                   sg.Checkbox('连接时复位', default=js_cfg['jk_con_reset'], key='jk_reset', pad=((40, 10), (1, 1)),
                               font=js_cfg['font'][0])],
-                 [sg.Checkbox('仿真启动(类似Keil Debug+Run)', default=js_cfg.get('jk_debug_run', False),
-                              key='jk_debug_run', font=js_cfg['font'][0]),
-                  sg.Checkbox('RTT启动后运行CPU', default=js_cfg.get('jk_run_after_rtt', True),
-                              key='jk_run_after_rtt', font=js_cfg['font'][0]),
-                  sg.Checkbox('H7调试时钟使能', default=js_cfg.get('jk_h7_dbg_enable', True),
-                              key='jk_h7_dbg_enable', font=js_cfg['font'][0])],
                  [sg.T('_SEGGER_RTT地址搜索范围(格式:起始地址 范围大小，比如:0x20000000 0x4000)：')],
                  [sg.In(rtt_search_address, key='rtt_block_address', size=(50, 1))]
                  ]
@@ -345,9 +339,6 @@ def hw_config_dialog(js_cfg):
                     js_cfg['jk_chip'].remove(chip_name)
                 js_cfg['jk_chip'].insert(0, chip_name)
                 js_cfg['jk_con_reset'] = cfg_window['jk_reset'].get()
-                js_cfg['jk_debug_run'] = cfg_window['jk_debug_run'].get()
-                js_cfg['jk_run_after_rtt'] = cfg_window['jk_run_after_rtt'].get()
-                js_cfg['jk_h7_dbg_enable'] = cfg_window['jk_h7_dbg_enable'].get()
 
                 with open('config.json', 'w') as f:
                     json.dump(js_cfg, f, indent=4)
@@ -665,9 +656,6 @@ def jk_open_device(obj, jk_cfg):
         reset_flag=jk_cfg.get('jk_con_reset', True),
         start_address=start_address,
         range_size=range_size,
-        run_after_rtt=jk_cfg.get('jk_run_after_rtt', True),
-        debug_run=jk_cfg.get('jk_debug_run', False),
-        h7_dbg_enable=jk_cfg.get('jk_h7_dbg_enable', True),
     )
 
 
@@ -675,16 +663,12 @@ def jk_write_connect_log(win, jk_cfg):
     win[DB_OUT].write('[J_Link LOG]sn:%d\n' % jk_cfg.get('_jk_sn', 0))
     win[DB_OUT].write('[J_Link LOG]过滤配置:%s\n' % ','.join(jk_cfg['filter'].split('&&')))
     win[DB_OUT].write('[J_Link LOG]芯片型号:%s\n' % jk_cfg['jk_chip'][0])
-    if jk_cfg.get('jk_debug_run', False):
-        win[DB_OUT].write('[J_Link LOG]仿真启动: 复位暂停 -> RTT -> 运行CPU\n')
-    elif jk_cfg.get('jk_con_reset', True):
+    if jk_cfg.get('jk_con_reset', True):
         win[DB_OUT].write('[J_Link LOG]J_Link复位MCU.\n')
     else:
         win[DB_OUT].write('[J_Link LOG]J_Link没有复位MCU.\n')
-    if jk_cfg.get('jk_run_after_rtt', True):
-        win[DB_OUT].write('[J_Link LOG]RTT启动后运行CPU: 开启\n')
-    if jk_cfg.get('jk_h7_dbg_enable', True):
-        win[DB_OUT].write('[J_Link LOG]H7调试时钟使能: 开启\n')
+    if 'H7' in jk_cfg['jk_chip'][0].upper():
+        win[DB_OUT].write('[J_Link LOG]STM32H7调试时钟: 自动使能\n')
 
 
 def jk_connect(win, obj, jk_cfg):
@@ -965,10 +949,6 @@ def main():
 
     # 读取json配置文件
     js_cfg = config_manager.load_config()
-
-    js_cfg.setdefault('jk_run_after_rtt', True)
-    js_cfg.setdefault('jk_debug_run', False)
-    js_cfg.setdefault('jk_h7_dbg_enable', True)
 
     if bds_ser.sync_serial_config(js_cfg):
         config_manager.save_config(js_cfg)

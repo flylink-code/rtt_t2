@@ -12,9 +12,6 @@
         "SWD"
     ],
     "jk_con_reset": true,
-    "jk_run_after_rtt": true,
-    "jk_debug_run": false,
-    "jk_h7_dbg_enable": true,
     "jk_speed": 4000,
     "hw_sel": "1",
     "filter": "",

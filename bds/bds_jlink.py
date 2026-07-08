@@ -241,7 +241,7 @@ class BDS_Jlink(HardWareBase):
         self.rtt_is_start = True
 
     def hw_open(self, speed=4000, chip='nRF52840_xxAA', reset_flag=True, start_address=None, range_size=0,
-                sn_no=None, run_after_rtt=True, debug_run=False, h7_dbg_enable=True):
+                sn_no=None):
         if not self._ensure_jlink():
             self.err_cb(self._jlink_error + '\n')
             return False
@@ -262,16 +262,15 @@ class BDS_Jlink(HardWareBase):
             self.jlink.set_speed(self.speed)
             self.jlink.connect(self.chip)
 
-            if h7_dbg_enable and is_stm32h7_chip(chip):
+            if is_stm32h7_chip(chip):
                 self._enable_stm32h7_debug()
 
-            did_reset = debug_run or reset_flag
+            did_reset = reset_flag
             if did_reset:
                 self.jlink.reset(ms=10, halt=True)
+                if is_stm32h7_chip(chip):
+                    self._enable_stm32h7_debug()
             # else: attach to already-running target without reset
-
-            if h7_dbg_enable and is_stm32h7_chip(chip):
-                self._enable_stm32h7_debug()
 
             block_address = self._resolve_rtt_block_address(
                 start_address, range_size, allow_search=not did_reset)
@@ -280,12 +279,8 @@ class BDS_Jlink(HardWareBase):
                 if did_reset and block_address is not None:
                     self._clear_rtt_control_block(block_address)
 
-                need_run = did_reset or run_after_rtt or self.jlink.halted()
-                if need_run:
+                if did_reset or self.jlink.halted():
                     self._ensure_cpu_running()
-                    if debug_run:
-                        time.sleep(0.05)
-                        self._ensure_cpu_running()
 
                 if block_address is not None:
                     if did_reset or not self._is_rtt_cb_valid(block_address):

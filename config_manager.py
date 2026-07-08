@@ -2,6 +2,12 @@ import os
 import json
 import sys
 
+DEPRECATED_CONFIG_KEYS = (
+    "jk_debug_run",
+    "jk_run_after_rtt",
+    "jk_h7_dbg_enable",
+)
+
 DEFAULT_CONFIG = {
     "jk_chip": [
         "STM32H743II",
@@ -16,9 +22,6 @@ DEFAULT_CONFIG = {
         "SWD"
     ],
     "jk_con_reset": False,
-    "jk_run_after_rtt": True,
-    "jk_debug_run": False,
-    "jk_h7_dbg_enable": True,
     "jk_speed": 4000,
     "hw_sel": "1",
     "filter": "",
@@ -73,7 +76,10 @@ def load_config():
             json.dump(DEFAULT_CONFIG, f, indent=4, ensure_ascii=False)
     
     with open(config_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+        config = json.load(f)
+    for key in DEPRECATED_CONFIG_KEYS:
+        config.pop(key, None)
+    return config
 
 def save_config(config):
     with open(get_config_path(), 'w', encoding='utf-8') as f:

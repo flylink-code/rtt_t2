@@ -42,7 +42,7 @@ def main():
     hw.jlink = jlink
     hw._enable_stm32h7_debug()
 
-    if cfg.get('jk_debug_run', True):
+    if cfg.get('jk_con_reset', True):
         jlink.reset(ms=10, halt=True)
         hw._clear_rtt_control_block(addr)
         jlink.restart(skip_breakpoints=True)
