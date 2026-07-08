@@ -22,13 +22,17 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QRadioButton,
+    QFileDialog,
     QStackedWidget,
     QStatusBar,
     QToolBar,
+    QToolButton,
     QVBoxLayout,
     QWidget,
+    QSizePolicy,
 )
 
+from app.theme_icons import make_theme_switch_icon
 from app.theme_loader import apply_theme
 from app.dialogs.custom_commands_dialog import CustomCommandsDialog
 from app.dialogs.find_dialog import FindDialog
@@ -49,7 +53,7 @@ from app.services.session_service import (
     normalize_ui_layout,
     send_payload,
 )
-from app.themes import get_theme_colors, normalize_theme
+from app.themes import get_theme_colors, normalize_theme, theme_switch_tooltip, toggle_theme
 from app.text_search import QtTextSearcher
 from app.widgets.log_terminal import LogTerminalWidget
 from app.widgets.pyte_terminal import PyteTerminalWidget
@@ -57,7 +61,7 @@ from app.widgets.send_panel import SendPanel
 from app.workers.hw_reader_worker import HwReaderWorker, thread_lock
 from app.workers.update_checker import DownloadWorker, HwBridge, UpdateCheckerWorker
 
-RTT_VERSION = 'v1.0.0'
+RTT_VERSION = 'v1.0.1'
 
 
 class ConnectionSidebar(QFrame):
@@ -256,6 +260,18 @@ class MainWindow(QMainWindow):
         ):
             toolbar.addAction(action)
 
+        toolbar_spacer = QWidget()
+        toolbar_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        toolbar.addWidget(toolbar_spacer)
+
+        self.theme_toggle_btn = QToolButton(self)
+        self.theme_toggle_btn.setAutoRaise(True)
+        self.theme_toggle_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        self.theme_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.theme_toggle_btn.clicked.connect(self._toggle_theme_quick)
+        toolbar.addWidget(self.theme_toggle_btn)
+        self._refresh_theme_toggle()
+
         central = QWidget()
         root = QHBoxLayout(central)
         root.setContentsMargins(8, 8, 8, 8)
@@ -450,7 +466,19 @@ class MainWindow(QMainWindow):
             self.sidebar.refresh_target(self.js_cfg)
             self._refresh_status()
             self._apply_theme()
+            self._refresh_theme_toggle()
             self._apply_ui_layout()
+
+    def _refresh_theme_toggle(self):
+        current_theme = normalize_theme(self.js_cfg.get('ui_theme', 'dark'))
+        self.theme_toggle_btn.setIcon(make_theme_switch_icon(current_theme))
+        self.theme_toggle_btn.setToolTip(theme_switch_tooltip(current_theme))
+
+    def _toggle_theme_quick(self):
+        self.js_cfg['ui_theme'] = toggle_theme(self.js_cfg.get('ui_theme'))
+        config_manager.save_config(self.js_cfg)
+        self._apply_theme()
+        self._refresh_theme_toggle()
 
     def _apply_theme(self):
         app = QApplication.instance()
@@ -516,9 +544,25 @@ class MainWindow(QMainWindow):
         if file_name:
             os.startfile(file_name)
 
-    def _save_data_to_file(self, data, prefix='log'):
+    def _save_current_log(self):
+        data = self._active_terminal().get_all_text()
+        if not data:
+            QMessageBox.warning(self, '错误', '无数据!!!')
+            return
+        start_dir = self.js_cfg.get('log_save_dir') or config_manager.ensure_log_dir()
+        selected_dir = QFileDialog.getExistingDirectory(self, '选择保存目录', start_dir)
+        if not selected_dir:
+            return
+        self.js_cfg['log_save_dir'] = selected_dir
+        config_manager.save_config(self.js_cfg)
+        prefix = 'serial_log' if get_hw_mode(self.js_cfg) == 'serial' else 'log'
+        file_name = self._save_data_to_file(data, prefix=prefix, save_dir=selected_dir)
+        if file_name:
+            os.startfile(file_name)
+
+    def _save_data_to_file(self, data, prefix='log', save_dir=None):
         try:
-            log_dir = config_manager.ensure_log_dir()
+            log_dir = save_dir or config_manager.ensure_log_dir()
             file_name = os.path.join(
                 log_dir,
                 '%s_%s.txt' % (prefix, datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')),
@@ -555,10 +599,13 @@ class MainWindow(QMainWindow):
         if terminal.textCursor().hasSelection():
             copy_action = menu.addAction('复制')
             copy_action.triggered.connect(terminal.copy)
+        save_action = menu.addAction('保存当前日志')
         clear_action = menu.addAction('清除窗口数据')
         scroll_action = menu.addAction('滚动到最底端')
         action = menu.exec(terminal.mapToGlobal(pos))
-        if action == clear_action:
+        if action == save_action:
+            self._save_current_log()
+        elif action == clear_action:
             terminal.clear_terminal()
             self.rx_bytes = 0
             self._refresh_status()

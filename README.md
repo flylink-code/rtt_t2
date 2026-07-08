@@ -1,10 +1,17 @@
-# RTT_T2 v1.0.0
+# RTT_T2 v1.0.1
 
 [English](README_EN.md) | 中文
 
 基于 [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2) fork 的 Windows 嵌入式调试工具，面向 **J-Link RTT** 与 **串口** 日志查看、交互终端、数据发送和波形观察。
 
 > 发行版与更新见 [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
+
+## v1.0.1 更新
+
+- **J-Link RTT 搜索**：默认搜索范围 `0x20000000 0x20000`，连接时自动应用配置
+- **配置优化**：RTT 地址在配置界面默认显示与提示；空配置自动迁移
+- **右键保存日志**：可选保存目录，记住上次路径
+- **主题切换**：工具栏右上角一键切换深色 / 亮色
 
 ## v1.0.0 亮点
 

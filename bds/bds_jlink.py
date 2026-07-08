@@ -229,12 +229,14 @@ class BDS_Jlink(HardWareBase):
         print('未在搜索范围内找到_SEGGER_RTT, 使用固定地址:0x%x' % start_address)
         return start_address
 
-    def _start_rtt(self, block_address):
+    def _start_rtt(self, block_address, search_start=None, search_size=0):
         self.jlink.swo_flush()
         self.jlink.rtt_stop()
-        if block_address is not None and is_stm32h7_chip(self.chip):
+        if search_start is not None and search_size > 0:
             try:
-                self.jlink.exec_command('SetRTTSearchRanges 0x20000000 0x20000')
+                self.jlink.exec_command(
+                    'SetRTTSearchRanges 0x%x 0x%x' % (search_start, search_size)
+                )
             except Exception:
                 pass
         self.jlink.rtt_start(block_address)
@@ -288,7 +290,7 @@ class BDS_Jlink(HardWareBase):
                             print('等待RTT控制块超时, 地址:0x%x (请确认固件已烧录且RTT已初始化)' % block_address)
 
                 # Start host RTT reader only after target firmware has initialized CB.
-                self._start_rtt(block_address)
+                self._start_rtt(block_address, start_address, range_size)
                 self._log_rtt_cb_status(block_address)
 
                 print('jlink connect success...')

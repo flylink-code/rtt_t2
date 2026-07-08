@@ -1,5 +1,4 @@
 """Quick RTT diagnostic: connect, wait for CB, dump status, read channel 0."""
-import json
 import os
 import sys
 import time
@@ -11,6 +10,7 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
+import config_manager
 from bds.bds_jlink import (
     BDS_Jlink,
     DTCM_RTT_UP_BUF,
@@ -20,18 +20,14 @@ from bds.bds_jlink import (
     find_jlink_dll,
 )
 
-CONFIG_FILE = os.path.join(ROOT_DIR, 'config.json')
-
 
 def load_cfg():
-    with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    return config_manager.load_config()
 
 
 def main():
     cfg = load_cfg()
-    addr = int(cfg['rtt_block_address'][0], 16)
-    size = int(cfg['rtt_block_address'][1], 16)
+    addr, size = config_manager.parse_rtt_search_values(cfg.get('rtt_block_address'))
     chip = cfg['jk_chip'][0]
 
     dll = find_jlink_dll()
@@ -60,7 +56,7 @@ def main():
         jlink.close()
         return 1
 
-    hw._start_rtt(addr)
+    hw._start_rtt(addr, addr, size)
     pbuf = jlink.memory_read32(addr + RTT_CB_AUP0_PBUFFER_OFF, 1)[0]
     bufsize = jlink.memory_read32(addr + RTT_CB_AUP0_SIZE_OFF, 1)[0]
     wr_off = jlink.memory_read32(addr + RTT_CB_AUP0_WROFF_OFF, 1)[0]

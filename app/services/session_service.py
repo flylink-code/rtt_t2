@@ -97,11 +97,9 @@ def get_next_history_item(lst, current_index, direction):
 
 
 def jk_open_device(obj, jk_cfg):
-    start_address = None
-    range_size = 0
-    if jk_cfg['rtt_block_address'][0] and jk_cfg['rtt_block_address'][1]:
-        start_address = int(jk_cfg['rtt_block_address'][0], 16)
-        range_size = int(jk_cfg['rtt_block_address'][1], 16)
+    start_address, range_size = config_manager.parse_rtt_search_values(
+        jk_cfg.get('rtt_block_address'),
+    )
     return obj.hw_open(
         speed=jk_cfg.get('jk_speed', 4000),
         chip=jk_cfg['jk_chip'][0],

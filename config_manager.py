@@ -11,6 +11,10 @@ DEPRECATED_CONFIG_KEYS = (
     "jk_h7_dbg_enable",
 )
 
+DEFAULT_RTT_SEARCH_START = '0x20000000'
+DEFAULT_RTT_SEARCH_SIZE = '0x20000'
+DEFAULT_RTT_BLOCK_ADDRESS = [DEFAULT_RTT_SEARCH_START, DEFAULT_RTT_SEARCH_SIZE]
+
 DEFAULT_CONFIG = {
     "jk_chip": [
         "STM32H743II",
@@ -61,10 +65,8 @@ DEFAULT_CONFIG = {
         {"name": "示例-帮助", "content": "help", "tx_type": "ASC"},
         {"name": "示例-回车", "content": "", "tx_type": "ASC"}
     ],
-    "rtt_block_address": [
-        "",
-        ""
-    ]
+    "rtt_block_address": list(DEFAULT_RTT_BLOCK_ADDRESS),
+    "log_save_dir": "",
 }
 
 def get_app_dir():
@@ -75,6 +77,23 @@ def get_config_path():
 
 def get_log_dir():
     return os.path.join(get_app_dir(), LOG_DIR_NAME)
+
+def normalize_rtt_block_address(addresses):
+    if not isinstance(addresses, list) or len(addresses) < 2:
+        return list(DEFAULT_RTT_BLOCK_ADDRESS)
+    start = str(addresses[0] or '').strip()
+    size = str(addresses[1] or '').strip()
+    if start and size:
+        return [start, size]
+    return list(DEFAULT_RTT_BLOCK_ADDRESS)
+
+def format_rtt_search_text(addresses):
+    start, size = normalize_rtt_block_address(addresses)
+    return '%s %s' % (start, size)
+
+def parse_rtt_search_values(addresses):
+    start_hex, size_hex = normalize_rtt_block_address(addresses)
+    return int(start_hex, 16), int(size_hex, 16)
 
 def ensure_log_dir():
     log_dir = get_log_dir()
@@ -100,7 +119,9 @@ def load_config():
         config.pop(key, None)
     migrated = 'jk_chip_catalog' not in config
     config = normalize_chip_config(config)
-    if migrated:
+    old_rtt = config.get('rtt_block_address')
+    config['rtt_block_address'] = normalize_rtt_block_address(old_rtt)
+    if migrated or old_rtt != config['rtt_block_address']:
         save_config(config)
     return config
 

@@ -62,11 +62,23 @@ class HwConfigDialog(QDialog):
         self.jk_speed_edit = QLineEdit(str(self.js_cfg['jk_speed']))
         self.jk_reset_check = QCheckBox('连接时复位')
         self.jk_reset_check.setChecked(self.js_cfg.get('jk_con_reset', False))
-        self.rtt_address_edit = QLineEdit()
-        if self.js_cfg['rtt_block_address'][0] and self.js_cfg['rtt_block_address'][1]:
-            self.rtt_address_edit.setText(
-                self.js_cfg['rtt_block_address'][0] + ' ' + self.js_cfg['rtt_block_address'][1]
+        self.rtt_address_edit = QLineEdit(
+            config_manager.format_rtt_search_text(self.js_cfg.get('rtt_block_address'))
+        )
+        self.rtt_address_edit.setPlaceholderText(
+            '%s %s' % (
+                config_manager.DEFAULT_RTT_SEARCH_START,
+                config_manager.DEFAULT_RTT_SEARCH_SIZE,
             )
+        )
+        self.rtt_address_edit.setToolTip(
+            'RTT 控制块搜索范围：起始地址 + 搜索长度，空格分隔。\n'
+            '起始地址须 4 字节对齐，默认 %s %s。'
+            % (
+                config_manager.DEFAULT_RTT_SEARCH_START,
+                config_manager.DEFAULT_RTT_SEARCH_SIZE,
+            )
+        )
         jk_form.addRow('芯片', self.chip_combo)
         jk_row = QHBoxLayout()
         jk_row.addWidget(QLabel('SN'))
@@ -233,7 +245,7 @@ class HwConfigDialog(QDialog):
                     return
                 self.js_cfg['rtt_block_address'] = list(rtt_block_address)
             else:
-                self.js_cfg['rtt_block_address'] = ['', '']
+                self.js_cfg['rtt_block_address'] = list(config_manager.DEFAULT_RTT_BLOCK_ADDRESS)
 
             self.js_cfg['jk_speed'] = int(self.jk_speed_edit.text())
             self.js_cfg['y_range'][0] = int(self.y_min_edit.text())

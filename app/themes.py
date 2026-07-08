@@ -46,5 +46,17 @@ def normalize_theme(name):
     return THEME_DARK
 
 
+def toggle_theme(theme_name):
+    if normalize_theme(theme_name) == THEME_DARK:
+        return THEME_LIGHT
+    return THEME_DARK
+
+
+def theme_switch_tooltip(current_theme):
+    if normalize_theme(current_theme) == THEME_DARK:
+        return '切换到亮色主题'
+    return '切换到暗色主题'
+
+
 def get_theme_colors(theme_name):
     return THEME_COLORS[normalize_theme(theme_name)]
