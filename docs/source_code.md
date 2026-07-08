@@ -1,86 +1,137 @@
-## 源码的说明
+# 源码与开发说明
 
-这篇文档主要是对源码感兴趣的工程师做的简要说明。这里主要介绍一下我自己的开发环境以及使用的代码库版本、代码库修改的地方。
+本文档面向需要维护、调试或二次开发 `RTT_T2` 的工程师，重点说明开发环境、关键依赖、第三方库修改点以及打包方式。
 
-## 编译器
-* 编译器 - PyCharm 
+## 开发环境
 
-## python版本
-* v3.9
+- IDE：PyCharm
+- Python：3.9
+- 目标平台：Windows
 
-## 几个关键软件库
-* PySimpleGUI，GUI模块，版本4.53.0。
+## 关键依赖
 
-* pylink，jlink模块，版本1.1.0。
+- `PySimpleGUI` `4.53.0`
+  用于主界面搭建。
 
-* pyserial，串口模块，p版本3.5。
+- `pylink` `1.1.0`
+  用于连接 J-Link 并访问 RTT 功能。
 
-* pyqtgraph，绘图模块，版本0.12.4。要注意，pyqtgraph依赖了pyQt，不同版本的pyqtgraph需要对应不同的pyQt。他们之间的对应关系可以去该仓库在github的官网中找到。
+- `pyserial` `3.5`
+  用于串口收发。
 
-## 软件库中的修改
+- `pyqtgraph` `0.12.4`
+  用于实时波形显示。该库依赖 `PyQt`，版本匹配关系需要按上游要求选择。
 
-RTT-T2修改了2个模块，一个是PySimpleGUI，一个是pyqtgraph。
+## 代码结构概览
 
-#### PySimpleGUI中的修改
+- `rtt_t2.py`
+  主入口，负责界面、线程、日志流、RTT/串口连接与交互。
 
-在PysimpleGUI.py中增加如下代码，以获得多行控件滑动条的坐标：
+- `config_manager.py`
+  负责默认配置、配置文件加载保存、日志目录初始化。
+
+- `text_searcher.py`
+  封装日志区域文本查找功能。
+
+- `bds/bds_jlink.py`
+  J-Link 与 RTT 相关实现。
+
+- `bds/bds_serial.py`
+  串口通信相关实现。
+
+- `bds/bds_waveform.py`
+  波形显示逻辑。
+
+- `rtt_diag.py`
+  诊断 RTT 控制块和通道状态的辅助脚本。
+
+## 第三方库修改点
+
+### PySimpleGUI
+
+为了获取多行控件滚动条位置，需要在 `PySimpleGUI.py` 中增加如下方法，可放在已有的 `set_vscroll_position()` 后面：
 
 ```python
-    def get_vscroll_position(self):
-        """
-        Get the relative position of the scrollbar
+def get_vscroll_position(self):
+    """
+    Get the relative position of the scrollbar
 
-        :return: (y1,y2)
-        :rtype: tuple
-        """
-        try:
-            return self.Widget.yview()
-        except Exception as e:
-            print('Warning get the vertical scroll (yview failed)')
-            print(e)
-            return None
+    :return: (y1,y2)
+    :rtype: tuple
+    """
+    try:
+        return self.Widget.yview()
+    except Exception as e:
+        print('Warning get the vertical scroll (yview failed)')
+        print(e)
+        return None
 ```
 
-该行代码增加到模块中已有的set_vscroll_position()函数后面即可。
+### pyqtgraph
 
-#### pyqtgraph中的修改
-在pyqtgraph中新增了两个捕获鼠标按下与松开的事件通知，以计算鼠标移动距离，进而移动适当的波形数据点。需要在GraphicsScene.py中新增如下代码：
+为了捕获鼠标按下和松开事件，从而支持更细致的波形拖拽交互，需要在 `GraphicsScene.py` 中补充信号和事件发送逻辑。
 
-1. 定义鼠标按下，松开实例。
+1. 增加两个信号：
 
 ```python
-    # 已有的
-    sigMouseHover = QtCore.Signal(object)   ## emits a list of objects hovered over
-    sigMouseMoved = QtCore.Signal(object)   ## emits position of mouse on every move
-    sigMouseClicked = QtCore.Signal(object)   ## emitted when mouse is clicked. Check for event.isAccepted() to see whether the event has already been acted on.
-    #新增的
-    sigMousePress = QtCore.Signal(object)
-    sigMouseRelease = QtCore.Signal(object)
+# 已有的
+sigMouseHover = QtCore.Signal(object)
+sigMouseMoved = QtCore.Signal(object)
+sigMouseClicked = QtCore.Signal(object)
+
+# 新增的
+sigMousePress = QtCore.Signal(object)
+sigMouseRelease = QtCore.Signal(object)
 ```
 
-2. 新增事件通知函数。
+2. 在事件函数中发送信号：
 
 ```python
 def mousePressEvent(self, ev):
-    # 已有的
     super().mousePressEvent(ev)
-    # 新增的
     self.sigMousePress.emit(ev)
     .......
 
 def mouseReleaseEvent(self, ev):
-    # 新增的
     self.sigMouseRelease.emit(ev)
-    # 已有的
-            if self.mouseGrabberItem() is None:
-            if ev.button() in self.dragButtons:
-                if self.sendDragEvent(ev, final=True):
-                    #print "sent drag event"
-                    ev.accept()
-                self.dragButtons.remove(ev.button())
     .......
 ```
 
-## 软件打包
-使用pyinstaller 5.1打包，打包命令：
->pyinstaller --exclude scipy -wD -i tool.ico rtt_t2.py
+## 打包方式
+
+项目使用 `PyInstaller 5.1` 打包。
+
+### 推荐入口
+
+在项目根目录运行：
+
+```bat
+build.bat
+```
+
+该命令会转发到：
+
+```bat
+scripts\build.bat
+```
+
+### 实际打包配置
+
+`scripts/build.bat` 内部调用：
+
+```bat
+pyinstaller rtt_t2.spec
+```
+
+`rtt_t2.spec` 中已包含：
+
+- 入口脚本：`rtt_t2.py`
+- 图标：`tool.ico`
+- 排除模块：`scipy`
+- 窗口模式：`console=False`
+
+## 维护建议
+
+- 运行期文件优先保持根目录相对路径稳定，避免影响 `config.json`、`aaa_log/`、图标与资源查找。
+- 构建、测试、诊断类脚本尽量集中到专用目录，并在 `docs/` 中记录用途。
+- 如果后续继续扩展功能，建议优先拆分 `rtt_t2.py` 中的界面、通信和升级逻辑，降低单文件维护成本。
