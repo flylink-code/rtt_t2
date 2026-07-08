@@ -24,8 +24,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - uses: wixtoolset/setup-wix@v2
-
       - name: Build Windows zip package
         shell: pwsh
         env:

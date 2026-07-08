@@ -1,27 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
-
-  <Package
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product
+      Id="*"
       Name="RTT_T2"
-      Manufacturer="flylink-code"
+      Language="1033"
       Version="$(var.ProductVersion)"
-      UpgradeCode="8B5F2E1A-3C4D-5E6F-7A8B-9C0D1E2F3A4B"
-      Scope="perMachine">
+      Manufacturer="flylink-code"
+      UpgradeCode="8B5F2E1A-3C4D-5E6F-7A8B-9C0D1E2F3A4B">
+
+    <Package
+        InstallerVersion="500"
+        Compressed="yes"
+        InstallScope="perMachine"
+        Platform="x64" />
 
     <MajorUpgrade DowngradeErrorMessage="已安装更高版本，无法降级安装。" />
     <MediaTemplate EmbedCab="yes" />
 
-    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
-
-    <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="INSTALLFOLDER" Name="rtt_t2" />
-    </StandardDirectory>
-
-    <Feature Id="MainFeature" Title="RTT_T2" Level="1">
+    <Feature Id="ProductFeature" Title="RTT_T2" Level="1">
       <ComponentGroupRef Id="AppFiles" />
     </Feature>
 
-    <ui:WixUI Id="WixUI_InstallDir" />
-  </Package>
+    <UI>
+      <UIRef Id="WixUI_InstallDir" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="2">1</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2">1</Publish>
+    </UI>
+
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="rtt_t2" />
+      </Directory>
+    </Directory>
+  </Product>
 </Wix>

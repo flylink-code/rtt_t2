@@ -8,6 +8,7 @@ bds/__pycache__/
 .idea/
 logs/
 installer/Files.wxs
+installer/obj/
 *.txt
 *.rar
 *.zip
