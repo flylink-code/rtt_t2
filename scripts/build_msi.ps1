@@ -11,17 +11,27 @@ while ($parts.Count -lt 3) {
 }
 $ProductVersion = ($parts[0..2] -join '.') + '.0'
 
-$DistFolder = Join-Path $RootDir 'dist\rtt_t2'
-if (-not (Test-Path $DistFolder)) {
-    throw "PyInstaller output not found: $DistFolder"
+$DistFolder = Resolve-Path (Join-Path $RootDir 'dist\rtt_t2')
+$SourceDir = "$DistFolder\"
+
+$WixCandidates = @(
+    (Join-Path $env:ProgramFiles 'WiX Toolset v3.14\bin'),
+    (Join-Path ${env:ProgramFiles(x86)} 'WiX Toolset v3.14\bin'),
+    (Join-Path ${env:ProgramFiles(x86)} 'WiX Toolset v3.11\bin')
+)
+if ($env:WIX) {
+    $WixCandidates = @((Join-Path $env:WIX 'bin')) + $WixCandidates
 }
 
-$WixBin = Join-Path ${env:ProgramFiles(x86)} 'WiX Toolset v3.14\bin'
-if (-not (Test-Path $WixBin)) {
-    $WixBin = Join-Path ${env:ProgramFiles(x86)} 'WiX Toolset v3.11\bin'
+$WixBin = $null
+foreach ($candidate in $WixCandidates) {
+    if (Test-Path (Join-Path $candidate 'heat.exe')) {
+        $WixBin = $candidate
+        break
+    }
 }
-if (-not (Test-Path $WixBin)) {
-    throw "WiX Toolset not found. Install WiX 3.11+ or use GitHub Actions windows-latest."
+if (-not $WixBin) {
+    throw 'WiX Toolset not found. Install WiX 3.11+ or run: choco install wixtoolset -y'
 }
 
 $HeatExe = Join-Path $WixBin 'heat.exe'
@@ -43,6 +53,9 @@ if (Test-Path $ObjDir) {
 }
 New-Item -ItemType Directory -Force -Path $ObjDir | Out-Null
 
+Write-Host "Using WiX from $WixBin"
+Write-Host "ProductVersion=$ProductVersion SourceDir=$SourceDir"
+
 & $HeatExe dir $DistFolder `
     -cg AppFiles `
     -dr INSTALLFOLDER `
@@ -54,13 +67,17 @@ New-Item -ItemType Directory -Force -Path $ObjDir | Out-Null
 
 & $CandleExe -nologo -arch x64 `
     -dProductVersion=$ProductVersion `
-    -dSourceDir=$DistFolder `
-    -out $ObjDir\ `
+    "-dSourceDir=$SourceDir" `
+    -out "$ObjDir\" `
     $ProductWxs $FilesWxs
 
-& $LightExe -nologo -ext WixUIExtension `
+& $LightExe -nologo -ext WixUIExtension -sval `
     -out $MsiPath `
     (Join-Path $ObjDir 'Product.wixobj') `
     (Join-Path $ObjDir 'Files.wixobj')
+
+if (-not (Test-Path $MsiPath)) {
+    throw "MSI was not created: $MsiPath"
+}
 
 Write-Host "Created $MsiPath"

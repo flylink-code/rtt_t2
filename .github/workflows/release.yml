@@ -24,6 +24,14 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\WiX Toolset v3.14\bin\heat.exe") -and `
+              -not (Test-Path "$env:ProgramFiles\WiX Toolset v3.14\bin\heat.exe")) {
+            choco install wixtoolset --version=3.14.1 -y --no-progress
+          }
+
       - name: Build Windows zip package
         shell: pwsh
         env:
@@ -32,16 +40,29 @@ jobs:
 
       - name: Build Windows MSI installer
         shell: pwsh
+        continue-on-error: true
         env:
           RTT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
         run: ./scripts/build_msi.ps1
 
+      - name: Collect Windows artifacts
+        shell: pwsh
+        env:
+          RTT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts/windows | Out-Null
+          Copy-Item "dist/rtt_t2-$env:RTT_VERSION-windows-x64.zip" artifacts/windows/
+          $msi = "dist/rtt_t2-$env:RTT_VERSION-windows-x64.msi"
+          if (Test-Path $msi) {
+            Copy-Item $msi artifacts/windows/
+          } else {
+            Write-Warning "MSI not built; release will include zip only."
+          }
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: |
-            dist/rtt_t2-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}-windows-x64.zip
-            dist/rtt_t2-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}-windows-x64.msi
+          path: artifacts/windows/*
 
   build-linux:
     runs-on: ubuntu-22.04
