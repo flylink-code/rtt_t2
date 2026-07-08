@@ -40,7 +40,6 @@ jobs:
 
       - name: Build Windows MSI installer
         shell: pwsh
-        continue-on-error: true
         env:
           RTT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
         run: ./scripts/build_msi.ps1

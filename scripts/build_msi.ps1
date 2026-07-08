@@ -60,6 +60,7 @@ Write-Host "ProductVersion=$ProductVersion SourceDir=$SourceDir"
     -cg AppFiles `
     -dr INSTALLFOLDER `
     -var var.SourceDir `
+    -platform x64 `
     -srd `
     -ag `
     -sfrag `
