@@ -154,12 +154,11 @@ def hw_config_dialog(js_cfg):
     com_des_list, com_name_list = bds_ser.serial_find()
     if not com_des_list:
         com_des_list.append('')
+    resolved_com, resolved_des, com_des_list, com_name_list = bds_ser.resolve_serial_port(
+        js_cfg.get('ser_com', ''), js_cfg.get('ser_des', ''))
+    def_select_com = resolved_des if resolved_des in com_des_list else com_des_list[0]
     if not baud_list:
         baud_list.append('')
-    if js_cfg['ser_des'] in com_des_list:
-        def_select_com = js_cfg['ser_des']
-    else:
-        def_select_com = com_des_list[0]
 
     jk_sel = False
     ser_sel = False
@@ -185,6 +184,12 @@ def hw_config_dialog(js_cfg):
                   sg.T('speed(kHz)'), sg.In(jk_speed, key='jk_speed', size=(5, 1)),
                   sg.Checkbox('连接时复位', default=js_cfg['jk_con_reset'], key='jk_reset', pad=((40, 10), (1, 1)),
                               font=js_cfg['font'][0])],
+                 [sg.Checkbox('仿真启动(类似Keil Debug+Run)', default=js_cfg.get('jk_debug_run', False),
+                              key='jk_debug_run', font=js_cfg['font'][0]),
+                  sg.Checkbox('RTT启动后运行CPU', default=js_cfg.get('jk_run_after_rtt', True),
+                              key='jk_run_after_rtt', font=js_cfg['font'][0]),
+                  sg.Checkbox('H7调试时钟使能', default=js_cfg.get('jk_h7_dbg_enable', True),
+                              key='jk_h7_dbg_enable', font=js_cfg['font'][0])],
                  [sg.T('_SEGGER_RTT地址搜索范围(格式:起始地址 范围大小，比如:0x20000000 0x4000)：')],
                  [sg.In(rtt_search_address, key='rtt_block_address', size=(50, 1))]
                  ]
@@ -340,6 +345,9 @@ def hw_config_dialog(js_cfg):
                     js_cfg['jk_chip'].remove(chip_name)
                 js_cfg['jk_chip'].insert(0, chip_name)
                 js_cfg['jk_con_reset'] = cfg_window['jk_reset'].get()
+                js_cfg['jk_debug_run'] = cfg_window['jk_debug_run'].get()
+                js_cfg['jk_run_after_rtt'] = cfg_window['jk_run_after_rtt'].get()
+                js_cfg['jk_h7_dbg_enable'] = cfg_window['jk_h7_dbg_enable'].get()
 
                 with open('config.json', 'w') as f:
                     json.dump(js_cfg, f, indent=4)
@@ -644,34 +652,50 @@ def log_process(win, obj, js_cfg, auto_scroll=True):
         log.info("RTT数据出错，可能需要重启设备！ + " + "error data:[" + new_log[0:20] + "]\n")
 
 
+def jk_open_device(obj, jk_cfg):
+    start_address = None
+    range_size = 0
+    if jk_cfg['rtt_block_address'][0] != '' and jk_cfg['rtt_block_address'][1] != '':
+        start_address = int(jk_cfg['rtt_block_address'][0], 16)
+        range_size = int(jk_cfg['rtt_block_address'][1], 16)
+        print(hex(start_address), hex(range_size))
+    return obj.hw_open(
+        speed=jk_cfg.get('jk_speed', 4000),
+        chip=jk_cfg['jk_chip'][0],
+        reset_flag=jk_cfg.get('jk_con_reset', True),
+        start_address=start_address,
+        range_size=range_size,
+        run_after_rtt=jk_cfg.get('jk_run_after_rtt', True),
+        debug_run=jk_cfg.get('jk_debug_run', False),
+        h7_dbg_enable=jk_cfg.get('jk_h7_dbg_enable', True),
+    )
+
+
+def jk_write_connect_log(win, jk_cfg):
+    win[DB_OUT].write('[J_Link LOG]sn:%d\n' % jk_cfg.get('_jk_sn', 0))
+    win[DB_OUT].write('[J_Link LOG]过滤配置:%s\n' % ','.join(jk_cfg['filter'].split('&&')))
+    win[DB_OUT].write('[J_Link LOG]芯片型号:%s\n' % jk_cfg['jk_chip'][0])
+    if jk_cfg.get('jk_debug_run', False):
+        win[DB_OUT].write('[J_Link LOG]仿真启动: 复位暂停 -> RTT -> 运行CPU\n')
+    elif jk_cfg.get('jk_con_reset', True):
+        win[DB_OUT].write('[J_Link LOG]J_Link复位MCU.\n')
+    else:
+        win[DB_OUT].write('[J_Link LOG]J_Link没有复位MCU.\n')
+    if jk_cfg.get('jk_run_after_rtt', True):
+        win[DB_OUT].write('[J_Link LOG]RTT启动后运行CPU: 开启\n')
+    if jk_cfg.get('jk_h7_dbg_enable', True):
+        win[DB_OUT].write('[J_Link LOG]H7调试时钟使能: 开启\n')
+
+
 def jk_connect(win, obj, jk_cfg):
     if win['connect'].get_text() == 'J_Link连接':
         try:
-            jk_con_reset = jk_cfg['jk_con_reset']
-            try:
-                jk_speed = jk_cfg['jk_speed']
-            except:
-                jk_speed = 4000
-            start_address = None
-            range_size = 0
-            if jk_cfg['rtt_block_address'][0] != '' and jk_cfg['rtt_block_address'][1] != '':
-                start_address = int(jk_cfg['rtt_block_address'][0], 16)
-                range_size = int(jk_cfg['rtt_block_address'][1], 16)
-                print(hex(start_address), hex(range_size))
-            obj.hw_open(speed=jk_speed, chip=jk_cfg['jk_chip'][0], reset_flag=jk_con_reset,
-                        start_address=start_address, range_size=range_size)
-            if obj.hw_is_open():
+            connection_success = jk_open_device(obj, jk_cfg)
+            if connection_success:
                 win['connect'].update('J_Link断开', button_color=('grey0', 'green4'))
-                win[DB_OUT].write('[J_Link LOG]sn:%d\n' % obj.get_hw_serial_number())
-                win[DB_OUT].write('[J_Link LOG]过滤配置:%s\n' % ','.join(jk_cfg['filter'].split('&&')))
-                win[DB_OUT].write('[J_Link LOG]芯片型号:%s\n' % jk_cfg['jk_chip'][0])
-                if jk_con_reset:
-                    win[DB_OUT].write('[J_Link LOG]J_Link复位MCU.\n')
-                else:
-                    win[DB_OUT].write('[J_Link LOG]J_Link没有复位MCU.\n')
+                jk_cfg['_jk_sn'] = obj.get_hw_serial_number()
+                jk_write_connect_log(win, jk_cfg)
                 log.info('J_Link连接成功')
-                # 每次连接后复位波形.波形是否立即复位取决于波形进程是否已经再运行
-                # wv.wave_pro_acc_cmd('wave reset')
             else:
                 win[DB_OUT].write('[J_Link LOG]J_Link打开失败\n')
         except Exception as e:
@@ -689,6 +713,8 @@ def jk_connect(win, obj, jk_cfg):
 def ser_connect(win, obj, jk_cfg):
     if win['connect'].get_text() == '串口连接':
         try:
+            if bds_ser.sync_serial_config(jk_cfg):
+                config_manager.save_config(jk_cfg)
             cur_com_name = jk_cfg['ser_com']
             cur_baud = int(jk_cfg['ser_baud'][0])
             win[DB_OUT].write('[Serial LOG]com description: %s\n' % jk_cfg['ser_des'])
@@ -929,46 +955,6 @@ def save_config(config):
         json.dump(config, f, indent=4)
 
 
-def jk_connect(win, obj, jk_cfg):
-    if win['connect'].get_text() == 'J_Link连接':
-        try:
-            jk_con_reset = jk_cfg['jk_con_reset']
-            try:
-                jk_speed = jk_cfg['jk_speed']
-            except:
-                jk_speed = 4000
-            start_address = None
-            range_size = 0
-            if jk_cfg['rtt_block_address'][0] != '' and jk_cfg['rtt_block_address'][1] != '':
-                start_address = int(jk_cfg['rtt_block_address'][0], 16)
-                range_size = int(jk_cfg['rtt_block_address'][1], 16)
-                print(hex(start_address), hex(range_size))
-            connection_success = obj.hw_open(speed=jk_speed, chip=jk_cfg['jk_chip'][0], reset_flag=jk_con_reset,
-                                             start_address=start_address, range_size=range_size)
-            if connection_success:
-                win['connect'].update('J_Link断开', button_color=('grey0', 'green4'))
-                win[DB_OUT].write('[J_Link LOG]sn:%d\n' % obj.get_hw_serial_number())
-                win[DB_OUT].write('[J_Link LOG]过滤配置:%s\n' % ','.join(jk_cfg['filter'].split('&&')))
-                win[DB_OUT].write('[J_Link LOG]芯片型号:%s\n' % jk_cfg['jk_chip'][0])
-                if jk_con_reset:
-                    win[DB_OUT].write('[J_Link LOG]J_Link复位MCU.\n')
-                else:
-                    win[DB_OUT].write('[J_Link LOG]J_Link没有复位MCU.\n')
-                log.info('J_Link连接成功')
-            else:
-                win[DB_OUT].write('[J_Link LOG]J_Link打开失败\n')
-        except Exception as e:
-            obj.hw_close()
-            log.info('J_Link打开失败' + str(e))
-            win[DB_OUT].write('[J_Link LOG]Error:%s\n' % e)
-            win['connect'].update('J_Link连接')
-    else:
-        obj.hw_close()
-        win['connect'].update('J_Link连接', button_color=('grey0', 'grey100'))
-        log.info('J_Link断开连接')
-        time.sleep(0.1)
-
-
 def main():
     multiprocessing.freeze_support()
 
@@ -979,6 +965,13 @@ def main():
 
     # 读取json配置文件
     js_cfg = config_manager.load_config()
+
+    js_cfg.setdefault('jk_run_after_rtt', True)
+    js_cfg.setdefault('jk_debug_run', False)
+    js_cfg.setdefault('jk_h7_dbg_enable', True)
+
+    if bds_ser.sync_serial_config(js_cfg):
+        config_manager.save_config(js_cfg)
 
     if 'search_history' not in js_cfg:
         js_cfg['search_history'] = []
@@ -1041,7 +1034,7 @@ def main():
     jk_obj = bds_jk.BDS_Jlink(hw_error, hw_warn, char_format=js_cfg['char_format'])
     ser_obj = bds_ser.BDS_Serial(hw_error, hw_warn, char_format=js_cfg['char_format'])
 
-    hw_obj = jk_obj
+    hw_obj = ser_obj if js_cfg['hw_sel'] == '2' else jk_obj
     threading.Thread(target=hw_rx_thread, daemon=True).start()
     threading.Thread(target=version_detect_thread, args=(window, rtt_cur_version), daemon=True).start()
 

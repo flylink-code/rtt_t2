@@ -1,7 +1,15 @@
 *.log
 build/
 dist/
+__pycache__/
+bds/__pycache__/
+*.py[cod]
+.venv/
+.idea/
+aaa_log/
 *.txt
 *.rar
 *.zip
 *.csv
+!requirements.txt
+!requirements-dev.txt

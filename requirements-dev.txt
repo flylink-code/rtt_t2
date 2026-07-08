@@ -1,0 +1,4 @@
+# Development / packaging dependencies
+-r requirements.txt
+
+pyinstaller==5.1

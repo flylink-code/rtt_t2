@@ -4,6 +4,7 @@ import sys
 
 DEFAULT_CONFIG = {
     "jk_chip": [
+        "STM32H743II",
         "nRF52840_xxAA",
         "STM32L412CB",
         "stm32f103C8",
@@ -14,7 +15,10 @@ DEFAULT_CONFIG = {
     "jk_interface": [
         "SWD"
     ],
-    "jk_con_reset": True,
+    "jk_con_reset": False,
+    "jk_run_after_rtt": True,
+    "jk_debug_run": False,
+    "jk_h7_dbg_enable": True,
     "jk_speed": 4000,
     "hw_sel": "1",
     "filter": "",

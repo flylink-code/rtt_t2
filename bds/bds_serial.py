@@ -5,6 +5,46 @@ from queue import Queue
 # import re
 from bds.hw_base import HardWareBase
 
+JLINK_PORT_KEYWORDS = ('jlink cdc uart', 'segger j-link', 'jlink')
+
+
+def is_jlink_port(description):
+    desc_lower = description.lower()
+    return any(keyword in desc_lower for keyword in JLINK_PORT_KEYWORDS)
+
+
+def find_jlink_ports(com_des_list, com_name_list):
+    return [(des, name) for des, name in zip(com_des_list, com_name_list) if is_jlink_port(des)]
+
+
+def resolve_serial_port(ser_com='', ser_des=''):
+    com_des_list, com_name_list = serial_find()
+    if not com_name_list:
+        return '', '', com_des_list, com_name_list
+
+    if ser_com and ser_com in com_name_list:
+        idx = com_name_list.index(ser_com)
+        return com_name_list[idx], com_des_list[idx], com_des_list, com_name_list
+
+    if ser_des and ser_des in com_des_list:
+        idx = com_des_list.index(ser_des)
+        return com_name_list[idx], com_des_list[idx], com_des_list, com_name_list
+
+    jlink_ports = find_jlink_ports(com_des_list, com_name_list)
+    if jlink_ports:
+        des, name = jlink_ports[0]
+        return name, des, com_des_list, com_name_list
+
+    return com_name_list[0], com_des_list[0], com_des_list, com_name_list
+
+
+def sync_serial_config(js_cfg):
+    com_name, com_des, _, _ = resolve_serial_port(js_cfg.get('ser_com', ''), js_cfg.get('ser_des', ''))
+    changed = js_cfg.get('ser_com') != com_name or js_cfg.get('ser_des') != com_des
+    js_cfg['ser_com'] = com_name
+    js_cfg['ser_des'] = com_des
+    return changed
+
 
 # from datetime import datetime
 
@@ -43,7 +83,9 @@ def ser_hot_plug_detect(last_default_des, last_des_list, last_name_list):
         def_new_len, def_old_len = len(des_new), len(des_old)
         if def_new_len > def_old_len:
             # 插入
-            default_des = list(des_new.difference(des_old))[0]
+            new_ports = list(des_new.difference(des_old))
+            jlink_new_ports = [des for des in new_ports if is_jlink_port(des)]
+            default_des = jlink_new_ports[0] if jlink_new_ports else new_ports[0]
         elif def_new_len < def_old_len:
             # 拔出，但不是目标串口
             if last_default_des in cur_com_des_list:
