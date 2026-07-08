@@ -3,6 +3,7 @@ import json
 import sys
 
 from app.chip_catalog import DEFAULT_CHIP_CATALOG, normalize_chip_config
+from app.release_info import LOG_DIR_NAME
 
 DEPRECATED_CONFIG_KEYS = (
     "jk_debug_run",
@@ -73,7 +74,16 @@ def get_config_path():
     return os.path.join(get_app_dir(), 'config.json')
 
 def get_log_dir():
-    return os.path.join(get_app_dir(), 'aaa_log')
+    return os.path.join(get_app_dir(), LOG_DIR_NAME)
+
+def ensure_log_dir():
+    log_dir = get_log_dir()
+    legacy_dir = os.path.join(get_app_dir(), 'aaa_log')
+    if os.path.isdir(legacy_dir) and not os.path.exists(log_dir):
+        os.rename(legacy_dir, log_dir)
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    return log_dir
 
 def load_config():
     config_path = get_config_path()
@@ -97,12 +107,6 @@ def load_config():
 def save_config(config):
     with open(get_config_path(), 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=4, ensure_ascii=False)
-
-def ensure_log_dir():
-    log_dir = get_log_dir()
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    return log_dir
 
 def initialize_app_environment():
     load_config()

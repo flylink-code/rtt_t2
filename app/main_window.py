@@ -200,9 +200,10 @@ class MainWindow(QMainWindow):
         self.log_timer.timeout.connect(self._poll_logs)
         self.log_timer.start()
 
-        self.update_worker = UpdateCheckerWorker(RTT_VERSION, self)
-        self.update_worker.update_available.connect(self._on_update_available)
-        self.update_worker.start()
+        if self.js_cfg.get('update_flag', True):
+            self.update_worker = UpdateCheckerWorker(RTT_VERSION, self)
+            self.update_worker.update_available.connect(self._on_update_available)
+            self.update_worker.start()
 
         self._refresh_status()
         self.log_terminal.set_paused(self.terminal_paused)

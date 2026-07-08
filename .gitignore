@@ -6,7 +6,7 @@ bds/__pycache__/
 *.py[cod]
 .venv/
 .idea/
-aaa_log/
+logs/
 *.txt
 *.rar
 *.zip

@@ -1,7 +1,44 @@
 import logging as log
+import sys
 
 import requests
 from PySide6.QtCore import QObject, QThread, Signal
+
+from app.release_info import GITHUB_RELEASES_API, is_newer_version
+
+
+def _fetch_latest_release():
+    response = requests.get(
+        GITHUB_RELEASES_API,
+        timeout=10,
+        headers={'Accept': 'application/vnd.github+json'},
+    )
+    response.raise_for_status()
+    releases = response.json()
+    for release in releases:
+        if release.get('draft'):
+            continue
+        tag_name = release.get('tag_name', '')
+        if tag_name:
+            return release
+    return None
+
+
+def pick_release_asset(release):
+    assets = release.get('assets', [])
+    if not assets:
+        return None
+    if sys.platform.startswith('win'):
+        platform_key = 'windows'
+        extension = '.zip'
+    else:
+        platform_key = 'linux'
+        extension = '.tar.gz'
+    for asset in assets:
+        name = asset.get('name', '').lower()
+        if platform_key in name and name.endswith(extension):
+            return asset
+    return assets[0]
 
 
 class UpdateCheckerWorker(QThread):
@@ -14,20 +51,12 @@ class UpdateCheckerWorker(QThread):
 
     def run(self):
         try:
-            try:
-                latest_release = requests.get(
-                    "https://gitee.com/api/v5/repos/bds123/rtt_t2/releases",
-                    timeout=5,
-                ).json()[-1]
-                log.info('download source: gitee')
-            except Exception:
-                latest_release = requests.get(
-                    "https://api.github.com/repos/flylink-code/rtt_t2/releases",
-                    timeout=5,
-                ).json()[0]
-                log.info('download source: github')
-
-            if self._current_version != latest_release['tag_name']:
+            latest_release = _fetch_latest_release()
+            if latest_release is None:
+                return
+            latest_tag = latest_release.get('tag_name', '')
+            log.info('update check: current=%s latest=%s', self._current_version, latest_tag)
+            if is_newer_version(latest_tag, self._current_version):
                 self.update_available.emit(latest_release)
         except Exception as exc:
             self.check_failed.emit(str(exc))
@@ -46,12 +75,16 @@ class DownloadWorker(QThread):
         import os
 
         try:
+            asset = pick_release_asset(self._latest_release)
+            if asset is None:
+                raise RuntimeError('当前版本没有可下载的安装包，请到 GitHub Releases 页面手动下载')
             home_dir = os.path.expanduser('~')
             download_dir = os.path.join(home_dir, 'Downloads')
-            asset = self._latest_release['assets'][0]
+            os.makedirs(download_dir, exist_ok=True)
             download_url = asset['browser_download_url']
             filename = os.path.join(download_dir, asset['name'])
-            response = requests.get(download_url, timeout=5, stream=True)
+            response = requests.get(download_url, timeout=30, stream=True)
+            response.raise_for_status()
             total_size = int(response.headers.get('Content-Length', 0))
             downloaded = 0
             last_percent = -1

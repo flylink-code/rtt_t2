@@ -7,6 +7,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from app.release_info import GITHUB_RELEASES_PAGE
+
 
 class UpdateDialog(QDialog):
     download_requested = Signal()
@@ -24,10 +26,7 @@ class UpdateDialog(QDialog):
         self.info_label.setWordWrap(True)
         layout.addWidget(self.info_label)
 
-        gitee = QLabel('<a href="https://gitee.com/bds123/rtt_t2/releases">gitee 下载地址</a>')
-        gitee.setOpenExternalLinks(True)
-        layout.addWidget(gitee)
-        github = QLabel('<a href="https://github.com/liuhao1946/rtt_t2/releases">github 下载地址</a>')
+        github = QLabel('<a href="%s">GitHub 下载地址</a>' % GITHUB_RELEASES_PAGE)
         github.setOpenExternalLinks(True)
         layout.addWidget(github)
 

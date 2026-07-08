@@ -8,28 +8,86 @@ A Windows debugging tool (forked from [lh-hg/rtt_t2](https://github.com/lh-hg/rt
 
 ## What's New in v1.0.0
 
-- **PySide6 UI** with modular `app/` layout and dark / light themes
-- **Dual view modes**: log mode (BDSCOL colors) and terminal mode (`pyte` VT100 shell with ANSI)
-- **Custom commands** in the sidebar for one-click macros
-- **Chip catalog** grouped by vendor in `config.json`
-- **Stability**: safe J-Link teardown; waveform stack updated for PySide6 6.x and pyqtgraph 0.14
+- **PySide6 UI**: sidebar + main workspace layout with dark / light themes
+- **Dual view modes**: log mode (BDSCOL colors) and terminal mode (`pyte` VT100, MSH / ANSI)
+- **Custom commands**: sidebar shortcuts for frequent payloads
+- **Chip catalog**: vendor-grouped J-Link parts in config UI and `config.json`
+- **Stability**: safe J-Link shutdown; waveform stack on PySide6 6.x / pyqtgraph 0.14
+
+## User Interface
+
+v1.0 is a full PySide6 rewrite. The window is organized as **toolbar**, **left sidebar**, **central display**, **send panel**, and **status bar**.
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ Toolbar: Connect | Config | Wave | Timestamp | Save | Find … │
+├──────────┬───────────────────────────────────────────────────┤
+│ Sidebar  │  [Optional] Filter dock: expression | enable | inv  │
+│          ├───────────────────────────────────────────────────┤
+│ HW mode  │                                                   │
+│ View mode│              Main area (log / terminal)            │
+│ Commands │                                                   │
+│ Target   │                                                   │
+│ Connect  │                                                   │
+├──────────┴───────────────────────────────────────────────────┤
+│ Send panel (log mode): ASC/HEX | history | encoding | EOL     │
+├──────────────────────────────────────────────────────────────┤
+│ Status: connection | target | RX | TX | view state           │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Left sidebar
+
+| Section | Description |
+|---------|-------------|
+| Interface | **J-Link RTT** / **Serial** (disconnect before switching) |
+| View mode | **Log mode** / **Terminal mode** |
+| Custom commands | Manage named ASC/HEX macros |
+| Target | Active chip or COM port summary |
+| Connect | Connect / disconnect |
+| Config / Wave | Shortcuts |
+| Log folder | Open `logs/` save directory |
+
+### Main display
+
+| Mode | Behavior |
+|------|----------|
+| **Log** | Read-only viewer with BDSCOL colors, filters, pause-follow, context menu |
+| **Terminal** | Interactive `pyte` terminal with ANSI, history, Tab, Ctrl+C |
+
+In **terminal mode** the bottom send panel is hidden; typing happens in the main area. In **log mode** the send panel is used for ASC / HEX payloads.
+
+### Toolbar
+
+Mirrors sidebar actions plus **timestamp**, **save all**, **real-time save**, **pause follow**, **scroll to bottom**, and **find** (`Ctrl+F`).
+
+### Config dialog
+
+- **Connection**: J-Link (vendor-grouped MCU, speed, reset, RTT search range) or serial (COM, baud)
+- **Display & encoding**: utf-8 / asc / hex / gb2312, line ending, **UI theme**
+- **Waveform defaults**: Y range, curve names, axis label
+
+### Theme & fonts
+
+- Theme: `ui_theme` → `dark` or `light` in `config.json`
+- Default fonts: Cascadia Mono + Microsoft YaHei UI
 
 ## Features
 
 | Feature | Details |
 |---------|---------|
-| J-Link RTT | utf-8 / asc; often faster than RTT Viewer in practice |
+| J-Link RTT | utf-8 / asc; channel 0 only |
 | Serial | utf-8 / asc / hex |
-| Log mode | Colored logs, line filter, pause-follow, Ctrl+F search, save all |
-| Terminal mode | Interactive shell (MSH), Enter / Tab / history / Ctrl+C |
-| Waveform | Up to 3 curves, drag, region stats, CSV export |
-| Send panel | ASC / HEX, multiline, history, inline comments |
+| Log mode | Colors, line filter, pause, Ctrl+F, save all |
+| Terminal mode | MSH / shell, Enter / Tab / history / Ctrl+C |
+| Waveform | Up to 3 curves, drag, stats, CSV export |
+| Send panel | ASC / HEX, multiline, history, comments |
 
 ## Requirements
 
 - **OS**: Windows 10+
 - **Python**: 3.9+ (from source)
-- **J-Link**: [SEGGER J-Link](https://www.segger.com/downloads/jlink/) when using RTT (`JLink_x64.dll`)
+- **J-Link**: [SEGGER J-Link](https://www.segger.com/downloads/jlink/) for RTT (`JLink_x64.dll`)
 
 ```bat
 python -m venv .venv
@@ -37,23 +95,28 @@ python -m venv .venv
 python main.py
 ```
 
-Build installer:
+Build (uses project `.venv`):
 
 ```bat
 build.bat
 ```
 
-## Layout
+Output: `dist\rtt_t2\` — run `rtt_t2.exe` inside that folder (keep the whole directory).
+
+## Project layout
 
 ```text
 rtt_t2/
-├─ app/                 PySide6 UI, services, terminal widgets
+├─ app/                 PySide6 UI, themes, terminal widgets
+│  ├─ dialogs/          config, find, update, custom commands
+│  ├─ widgets/          log view, terminal view, send panel
+│  ├─ services/         log processing, session helpers
+│  └─ styles/           dark.qss / light.qss
 ├─ bds/                 J-Link, serial, waveform core
-├─ docs/                Developer docs
-├─ images/              Screenshots and demos
-├─ scripts/             Build and RTT diagnostic scripts
-├─ main.py              Entry point
-├─ config_manager.py    Config and log directory helpers
+├─ docs/                developer docs
+├─ scripts/             build & RTT diagnostics
+├─ main.py              entry point
+├─ config_manager.py    config & log directory
 └─ rtt_t2.spec          PyInstaller spec
 ```
 
@@ -63,43 +126,36 @@ Docs:
 - Source notes: [docs/source_code.md](docs/source_code.md)
 - Structure: [docs/project_structure.md](docs/project_structure.md)
 
-## Quick Start
+## Quick start
 
 ### J-Link RTT
 
-1. Open **Config** → pick MCU (vendor groups), speed, reset option
-2. Save → click **Connect**
-3. Switch **Log mode** or **Terminal mode** in the sidebar
+1. **Config** → pick MCU (by vendor), speed, reset option → save → **Connect**
+2. Switch **Log mode** or **Terminal mode** in the sidebar
 
-> Only RTT channel 0 is supported (`SEGGER_RTT_printf(0, ...)`).
+> RTT channel 0 only (`SEGGER_RTT_printf(0, ...)`).
 
 ### Serial
 
-1. **Config** → COM port and baud rate
-2. Save → **Connect**
+**Config** → COM + baud → save → **Connect**
 
-### View Modes
+### Log filter (log mode only)
 
-| Mode | Use case |
-|------|----------|
-| Log | Colored tags, filters, boot logs |
-| Terminal | RT-Thread MSH / interactive shell in the main pane |
-
-In terminal mode the send panel is hidden; use **Custom commands** for shortcuts.
-
-### Log Filter (log mode only)
-
-1. Enter patterns like `TAG=DLOG` or `TAG=DLOG&&TAG=BDS`
-2. Enable the filter; use **Invert** to keep only matching lines
+1. Filter dock: `TAG=DLOG` or `TAG=DLOG&&TAG=BDS`
+2. Enable; use **Invert** to keep only matches
 3. Prefer keywords with length ≥ 3
+
+### Custom commands
+
+Sidebar → add name, payload, ASC/HEX → send while connected.
 
 ### Waveform
 
-1. Set Y range and curve names in **Config** (`X&&Y&&Z` for three curves)
-2. Connect hardware → **Waveform**
-3. Firmware sends `TAG=DLOG M*P(x,y,z)\n` (see below)
+**Config** → Y range and curve names (`X&&Y&&Z`) → connect → **Waveform**
 
-## Colored Logs (BDSCOL)
+Firmware format: `TAG=DLOG M*P(x,y,z)\n` (see below).
+
+## Colored logs (BDSCOL)
 
 ```c
 #define BDS_COLOR_TAG "BDSCOL"
@@ -108,32 +164,38 @@ In terminal mode the send panel is hidden; use **Custom commands** for shortcuts
 SEGGER_RTT_printf(0, BDS_COLOR_TAG "(%d)%s", BDS_LOG_COLOR_RED, "test\n");
 ```
 
-## Waveform Payload
+## Waveform payload
 
 ```text
 TAG=DLOG M*P(x,y,z)\n
 ```
 
 - Integers: `P=0`
-- Floats: scale by `10^P` because RTT printf has no `%f`
+- Floats: scale by `10^P` (no `%f` in RTT printf)
 
-## Chip Catalog
+One curve: `M*P(x,0,0)`; two curves: `M*P(x,y,0)`.
 
-`jk_chip_catalog` in `config.json` lists common parts by vendor; `jk_chip[0]` is the active selection. New names are auto-classified on save.
+## Chip catalog
+
+`jk_chip_catalog` in `config.json` lists parts by vendor; `jk_chip[0]` is the active MCU.
 
 ## FAQ
 
 ### `Expected to be given a valid DLL`
 
-Install SEGGER J-Link or set `JLINK_SDK` to your DLL path.
+Install SEGGER J-Link or set `JLINK_SDK` to the DLL path.
 
 ### Target connects but no RTT output
 
-Set RTT search range in **Config**, e.g. `0x20000000 0x20000` (4-byte aligned start, hex with `0x` prefix, values separated by space).
+Set RTT search range in **Config**, e.g. `0x20000000 0x20000`.
 
 ### Filter has no effect in terminal mode
 
-Filtering applies to **log mode** only; terminal mode shows the raw stream.
+Filtering applies to **log mode** only.
+
+### Packaged app: `No module named 'pylink'`
+
+Use `build.bat` or `scripts\package_windows.ps1` so the build runs inside `.venv` with all dependencies bundled.
 
 ---
 
