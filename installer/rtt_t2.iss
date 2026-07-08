@@ -32,7 +32,6 @@ ArchitecturesInstallIn64BitMode=x64
 PrivilegesRequired=admin
 
 [Languages]
-Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
