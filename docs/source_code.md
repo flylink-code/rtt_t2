@@ -24,13 +24,13 @@
 
 ## 代码结构概览
 
-- `rtt_t2.py`
-  主入口，负责界面、线程、日志流、RTT/串口连接与交互。
+- `main.py` / `app/`
+  主入口与应用层，负责界面、线程、日志流、RTT/串口连接与交互。
 
 - `config_manager.py`
   负责默认配置、配置文件加载保存、日志目录初始化。
 
-- `text_searcher.py`
+- `app/text_search.py`
   封装日志区域文本查找功能。
 
 - `bds/bds_jlink.py`
@@ -42,7 +42,7 @@
 - `bds/bds_waveform.py`
   波形显示逻辑。
 
-- `rtt_diag.py`
+- `scripts/rtt_diag.py`
   诊断 RTT 控制块和通道状态的辅助脚本。
 
 ## 第三方库修改点
@@ -125,7 +125,7 @@ pyinstaller rtt_t2.spec
 
 `rtt_t2.spec` 中已包含：
 
-- 入口脚本：`rtt_t2.py`
+- 入口脚本：`main.py`
 - 图标：`tool.ico`
 - 排除模块：`scipy`
 - 窗口模式：`console=False`
@@ -134,4 +134,4 @@ pyinstaller rtt_t2.spec
 
 - 运行期文件优先保持根目录相对路径稳定，避免影响 `config.json`、`aaa_log/`、图标与资源查找。
 - 构建、测试、诊断类脚本尽量集中到专用目录，并在 `docs/` 中记录用途。
-- 如果后续继续扩展功能，建议优先拆分 `rtt_t2.py` 中的界面、通信和升级逻辑，降低单文件维护成本。
+- 界面与业务逻辑已迁移至 `app/`，后续扩展优先在对应子模块中维护。

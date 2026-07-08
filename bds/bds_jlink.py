@@ -299,16 +299,32 @@ class BDS_Jlink(HardWareBase):
             print(e)
         return False
 
-    def hw_close(self):
-        if self.jlink is None:
+    def _release_jlink(self):
+        jlink = self.jlink
+        self.jlink = None
+        self.rtt_is_start = False
+        if jlink is None:
             return
-        if self.jlink.opened():
-            try:
-                self.rtt_is_start = False
-                self.jlink.rtt_stop()
-            except Exception:
-                pass
-            self.jlink.close()
+        try:
+            if jlink.opened():
+                try:
+                    jlink.rtt_stop()
+                except Exception:
+                    pass
+                try:
+                    jlink.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        # pylink JLink.__del__ calls _finalize() again; avoid touching DLL after close.
+        try:
+            jlink._initialized = False
+        except Exception:
+            pass
+
+    def hw_close(self):
+        self._release_jlink()
 
     def get_hw_serial_number(self):
         if self.jlink is not None and self.jlink.opened():

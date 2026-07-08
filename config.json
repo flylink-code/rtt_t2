@@ -1,38 +1,91 @@
 {
     "jk_chip": [
-        "STM32H743II",
-        "nRF52840_xxAA",
-        "STM32L412CB",
-        "stm32f103C8",
-        "stm32f103zet6",
-        "nRF52832_xxAA",
-        "nRF52832_xxAB"
+        "STM32H743II"
     ],
+    "jk_chip_catalog": {
+        "意法半导体 (ST)": [
+            "STM32F030C8",
+            "STM32F051C8",
+            "STM32F103C8",
+            "STM32F103CB",
+            "STM32F103RC",
+            "STM32F103VE",
+            "STM32F103ZE",
+            "STM32F105RC",
+            "STM32F401CC",
+            "STM32F401RE",
+            "STM32F405RG",
+            "STM32F407VG",
+            "STM32F411CE",
+            "STM32F412RG",
+            "STM32F429NI",
+            "STM32F446RE",
+            "STM32G031F6",
+            "STM32G071RB",
+            "STM32G431CB",
+            "STM32H743II",
+            "STM32H743XI",
+            "STM32H750VB",
+            "STM32H753II",
+            "STM32L031F6",
+            "STM32L412CB",
+            "STM32L432KC",
+            "STM32L476RG"
+        ],
+        "Nordic": [
+            "nRF51822_xxAA",
+            "nRF52832_xxAA",
+            "nRF52832_xxAB",
+            "nRF52833_xxAA",
+            "nRF52840_xxAA",
+            "nRF5340_xxAA_APP",
+            "nRF9160_xxAA"
+        ],
+        "恩智浦 (NXP)": [
+            "LPC1768",
+            "LPC4088FET208",
+            "MKL27Z64xxx4",
+            "MK64FN1M0xxx12",
+            "MIMXRT1052xxxxB",
+            "MIMXRT1062xxxxA"
+        ],
+        "微芯 (Microchip)": [
+            "ATSAMD21G18A",
+            "ATSAM3X8E",
+            "ATSAME70Q20"
+        ],
+        "兆易创新 (GD)": [
+            "GD32F103C8",
+            "GD32F103RB",
+            "GD32F303VC",
+            "GD32F405RG",
+            "GD32F407VE"
+        ],
+        "乐鑫 (Espressif)": [
+            "ESP32C3",
+            "ESP32S3"
+        ],
+        "树莓派 (Raspberry Pi)": [
+            "RP2040"
+        ],
+        "其他": []
+    },
     "jk_interface": [
         "SWD"
     ],
-    "jk_con_reset": true,
+    "jk_con_reset": false,
     "jk_speed": 4000,
     "hw_sel": "1",
     "filter": "",
     "filter_en": false,
     "font": [
-        "Consolas",
-        "Calibri"
+        "Cascadia Mono",
+        "Microsoft YaHei UI"
     ],
-    "font_size": "12",
+    "font_size": "13",
     "tx_line": "\n",
     "user_input_data": [
-        "hello",
-        "111",
-        "1111",
-        "1235658558asdfsd\nad\n12335\n\n\n12",
-        "1235658558asdfsd\nad\n12335",
-        "12356",
-        "1235658558",
-        "1235658558asdfsd",
-        "123",
-        "1235658558asdfsd\nad\n1233"
+        "123"
     ],
     "curves_name": "X&&Y&&Z",
     "y_range": [
@@ -48,26 +101,30 @@
         9600,
         19200
     ],
-    "ser_com": "COM16",
-    "ser_des": "JLink CDC UART Port (COM16)",
-    "char_format": "utf-8",
+    "ser_com": "COM1",
+    "ser_des": "通信端口 (COM1)",
+    "char_format": "asc",
     "update_flag": true,
-    "line_break": "\r\n",
+    "line_break": "\n",
+    "ui_theme": "dark",
+    "ui_layout": "log",
+    "terminal_autoscroll": true,
+    "terminal_paused": false,
+    "send_panel_mode": "expanded",
+    "custom_commands": [
+        {
+            "name": "示例-帮助",
+            "content": "help",
+            "tx_type": "ASC"
+        },
+        {
+            "name": "示例-回车",
+            "content": "",
+            "tx_type": "ASC"
+        }
+    ],
     "rtt_block_address": [
-        "0x20000000",
-        "0x20000"
-    ],
-    "search_history": [
-        "BDS",
-        "APPALGBDS",
-        "APPDTBDS(",
-        "APPDTBDS(0)APPALGBDS(0)Z=BDS",
-        "APPDTBDS",
-        ".bss",
-        "vPort",
-        "task",
-        "app_",
-        "cwm_algo_task"
-    ],
-    "_jk_sn": 69406686
+        "",
+        ""
+    ]
 }

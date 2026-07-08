@@ -6,14 +6,17 @@
 
 ### 运行期核心文件
 
-- `rtt_t2.py`
-  主程序入口，负责 GUI、RTT/串口收发、日志显示、升级检查等主流程。
+- `main.py`
+  主程序入口，启动 `app/` 中的 PySide6 应用。
+
+- `app/`
+  GUI、RTT/串口收发、日志显示、升级检查等主流程。
 
 - `config_manager.py`
   配置文件与日志目录管理，负责 `config.json` 与 `aaa_log/` 的创建和读写。
 
-- `text_searcher.py`
-  文本搜索相关逻辑，供主界面中的日志查找功能使用。
+- `app/text_search.py`
+  日志区域文本查找（PySide6 实现）。
 
 - `bds/`
   底层通信与波形绘制相关模块，包括 J-Link、串口、波形和辅助工具。
@@ -54,11 +57,8 @@
 - `rtt_t2.spec`
   PyInstaller 打包配置。
 
-- `rtt_diag.py`
+- `scripts/rtt_diag.py`
   RTT 诊断脚本，用于排查 RTT 控制块、缓冲区和 J-Link 连接问题。
-
-- `test.py`
-  独立的 GUI/历史记录交互测试脚本，不参与主程序运行。
 
 ## 建议的维护原则
 

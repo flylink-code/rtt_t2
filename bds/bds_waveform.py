@@ -8,6 +8,8 @@ from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 import math
 from functools import partial
 
+from bds.wave_graphics_patch import apply_graphics_scene_mouse_signals
+
 global wave_data_q, wave_run_flag, wave_cmd_q, wave_obj, wave_pause_flag
 
 # app = pg.mkQApp()
@@ -493,6 +495,8 @@ def wave_cmd(cmd):
 def wave_init():
     global wave_data_q, wave_run_flag, wave_pause_flag, wave_cmd_q
 
+    apply_graphics_scene_mouse_signals()
+
     # Value、Array都是线程安全的,参考https://docs.python.org/zh-cn/3/library/multiprocessing.html
     wave_pause_flag = Value('i')
     wave_run_flag = Value('i')
@@ -511,11 +515,22 @@ def wave_update():
 def wave_run(run_flag, pause_flag, data_q, cmd_q, cfg):
     global wave_obj
 
+    import os
+    import sys
+
+    os.environ.setdefault('PYQTGRAPH_QT_LIB', 'PySide6')
+    apply_graphics_scene_mouse_signals()
+
+    app = QtWidgets.QApplication.instance()
+    if app is None:
+        app = QtWidgets.QApplication(sys.argv)
+
     run_flag.value = 1
 
-    win = pg.GraphicsLayoutWidget(show=True)
+    win = pg.GraphicsLayoutWidget(show=False)
     win.resize(1000, 700)
     win.setWindowTitle('实时波形图')
+    win.show()
     win.addLabel("<b>实时波形图</b>")
     label_xy = pg.LabelItem(justify='right')
     label_odr = pg.LabelItem(justify='right')
@@ -543,7 +558,7 @@ def wave_run(run_flag, pause_flag, data_q, cmd_q, cfg):
     timer.timeout.connect(wave_obj.wave_update)
     timer.start(10)
     # 窗体关闭自动退出进程
-    pg.exec()
+    app.exec()
 
     pause_flag.value = 0
     run_flag.value = 0

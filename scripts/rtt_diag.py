@@ -7,6 +7,10 @@ import time
 import pylink
 from pylink import library as pylink_library
 
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
 from bds.bds_jlink import (
     BDS_Jlink,
     DTCM_RTT_UP_BUF,
@@ -16,7 +20,7 @@ from bds.bds_jlink import (
     find_jlink_dll,
 )
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'config.json')
+CONFIG_FILE = os.path.join(ROOT_DIR, 'config.json')
 
 
 def load_cfg():

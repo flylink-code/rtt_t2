@@ -1,0 +1,190 @@
+/* MobaXterm-inspired light / classic xterm */
+QMainWindow, QWidget {
+    background-color: #F0F0F0;
+    color: #222222;
+    font-family: "@UI_FONT@", "Microsoft YaHei UI", sans-serif;
+    font-size: @UI_SIZE@px;
+}
+
+#connectionSidebar, #sendPanel {
+    background-color: #E8E8E8;
+    border: 1px solid #B0B0B0;
+    border-radius: 2px;
+}
+
+#sidebarTitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111111;
+}
+
+#sidebarSubtitle {
+    color: #666666;
+}
+
+#logTerminal {
+    background-color: #FFFFFF;
+    color: #1A1A1A;
+    border: 1px solid #C8C8C8;
+    border-radius: 2px;
+    padding: 6px;
+    selection-background-color: #ADD6FF;
+    selection-color: #000000;
+    font-family: "@MONO_FONT@", "Microsoft YaHei Mono", monospace;
+}
+
+#sendInput {
+    background-color: #FFFFFF;
+    color: #1A1A1A;
+    border: 1px solid #C8C8C8;
+    border-radius: 2px;
+    font-family: "@MONO_FONT@", "Microsoft YaHei Mono", monospace;
+}
+
+#terminalInputBar {
+    background-color: #E8E8E8;
+    border: 1px solid #B0B0B0;
+    border-radius: 2px;
+    padding: 4px 6px;
+}
+
+#terminalPrompt {
+    color: #006400;
+    font-family: "@MONO_FONT@", "Microsoft YaHei Mono", monospace;
+    font-weight: 600;
+}
+
+#terminalLineInput {
+    background-color: #FFFFFF;
+    color: #1A1A1A;
+    border: 1px solid #C8C8C8;
+    border-radius: 2px;
+    font-family: "@MONO_FONT@", "Microsoft YaHei Mono", monospace;
+}
+
+QPushButton {
+    background-color: #E0E0E0;
+    color: #222222;
+    border: 1px solid #B0B0B0;
+    border-radius: 2px;
+    padding: 5px 12px;
+}
+
+QPushButton:hover {
+    background-color: #D4D4D4;
+    border-color: #909090;
+}
+
+QPushButton:pressed {
+    background-color: #316AC5;
+    color: #FFFFFF;
+    border-color: #316AC5;
+}
+
+QPushButton#primaryButton {
+    background-color: #316AC5;
+    color: #FFFFFF;
+    border: 1px solid #2858A8;
+    font-weight: 600;
+}
+
+QPushButton#primaryButton:hover {
+    background-color: #3B7AD6;
+}
+
+QPushButton#primaryButton[connected="true"] {
+    background-color: #2E7D32;
+    border-color: #256628;
+}
+
+QToolBar {
+    background-color: #E8E8E8;
+    border-bottom: 1px solid #B0B0B0;
+    spacing: 4px;
+    padding: 3px;
+}
+
+QStatusBar {
+    background-color: #DCDCDC;
+    color: #333333;
+    border-top: 1px solid #B0B0B0;
+}
+
+QStatusBar QLabel {
+    color: #333333;
+    padding: 0 8px;
+}
+
+QDockWidget::title {
+    background-color: #E8E8E8;
+    color: #222222;
+    padding: 6px;
+    border: 1px solid #B0B0B0;
+}
+
+QLineEdit, QComboBox, QPlainTextEdit {
+    background-color: #FFFFFF;
+    color: #222222;
+    border: 1px solid #B0B0B0;
+    border-radius: 2px;
+    padding: 4px 6px;
+    selection-background-color: #ADD6FF;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #FFFFFF;
+    color: #222222;
+    selection-background-color: #316AC5;
+    selection-color: #FFFFFF;
+}
+
+QComboBox::drop-down {
+    border: none;
+}
+
+QRadioButton, QCheckBox {
+    spacing: 6px;
+}
+
+QGroupBox {
+    border: 1px solid #B0B0B0;
+    border-radius: 2px;
+    margin-top: 10px;
+    padding-top: 10px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 4px;
+    color: #666666;
+}
+
+QProgressBar {
+    border: 1px solid #B0B0B0;
+    border-radius: 2px;
+    text-align: center;
+    background-color: #FFFFFF;
+    color: #222222;
+}
+
+QProgressBar::chunk {
+    background-color: #316AC5;
+    border-radius: 1px;
+}
+
+QScrollBar:vertical {
+    background: #F0F0F0;
+    width: 12px;
+    border: none;
+}
+
+QScrollBar::handle:vertical {
+    background: #C0C0C0;
+    min-height: 24px;
+    border-radius: 2px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #A8A8A8;
+}

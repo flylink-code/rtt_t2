@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(
-    ['rtt_t2.py'],
+    ['main.py'],
     pathex=[],
     binaries=[],
     datas=[],

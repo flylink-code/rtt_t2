@@ -2,6 +2,8 @@ import os
 import json
 import sys
 
+from app.chip_catalog import DEFAULT_CHIP_CATALOG, normalize_chip_config
+
 DEPRECATED_CONFIG_KEYS = (
     "jk_debug_run",
     "jk_run_after_rtt",
@@ -11,13 +13,8 @@ DEPRECATED_CONFIG_KEYS = (
 DEFAULT_CONFIG = {
     "jk_chip": [
         "STM32H743II",
-        "nRF52840_xxAA",
-        "STM32L412CB",
-        "stm32f103C8",
-        "stm32f103zet6",
-        "nRF52832_xxAA",
-        "nRF52832_xxAB"
     ],
+    "jk_chip_catalog": DEFAULT_CHIP_CATALOG,
     "jk_interface": [
         "SWD"
     ],
@@ -27,10 +24,10 @@ DEFAULT_CONFIG = {
     "filter": "",
     "filter_en": False,
     "font": [
-        "Consolas",
-        "Calibri"
+        "Cascadia Mono",
+        "Microsoft YaHei UI"
     ],
-    "font_size": "12",
+    "font_size": "13",
     "tx_line": "\n",
     "user_input_data": [
         "123"
@@ -54,6 +51,15 @@ DEFAULT_CONFIG = {
     "char_format": "asc",
     "update_flag": True,
     "line_break": "\n",
+    "ui_theme": "dark",
+    "ui_layout": "log",
+    "terminal_autoscroll": True,
+    "terminal_paused": False,
+    "send_panel_mode": "expanded",
+    "custom_commands": [
+        {"name": "示例-帮助", "content": "help", "tx_type": "ASC"},
+        {"name": "示例-回车", "content": "", "tx_type": "ASC"}
+    ],
     "rtt_block_address": [
         "",
         ""
@@ -77,8 +83,15 @@ def load_config():
     
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)
+    for key, value in DEFAULT_CONFIG.items():
+        if key not in config:
+            config[key] = value
     for key in DEPRECATED_CONFIG_KEYS:
         config.pop(key, None)
+    migrated = 'jk_chip_catalog' not in config
+    config = normalize_chip_config(config)
+    if migrated:
+        save_config(config)
     return config
 
 def save_config(config):
@@ -92,11 +105,5 @@ def ensure_log_dir():
     return log_dir
 
 def initialize_app_environment():
-    load_config()  # This will create the config file if it doesn't exist
+    load_config()
     return ensure_log_dir()
-
-def ensure_log_dir():
-    log_dir = get_log_dir()
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    return log_dir
