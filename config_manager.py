@@ -29,6 +29,7 @@ DEFAULT_CONFIG = {
     "hw_sel": "1",
     "filter": "",
     "filter_en": False,
+    "filter_inverse": False,
     "font": [
         "Cascadia Mono",
         "Microsoft YaHei UI"

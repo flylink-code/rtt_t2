@@ -78,21 +78,27 @@ def pick_release_asset(release):
 
 class UpdateCheckerWorker(QThread):
     update_available = Signal(dict)
+    already_latest = Signal(str)
     check_failed = Signal(str)
 
-    def __init__(self, current_version, parent=None):
+    def __init__(self, current_version, parent=None, notify_when_latest=False):
         super().__init__(parent)
         self._current_version = current_version
+        self._notify_when_latest = notify_when_latest
 
     def run(self):
         try:
             latest_release = _fetch_latest_release()
             if latest_release is None:
+                if self._notify_when_latest:
+                    self.check_failed.emit('未找到可用的 GitHub Release')
                 return
             latest_tag = latest_release.get('tag_name', '')
             log.info('update check: current=%s latest=%s', self._current_version, latest_tag)
             if is_newer_version(latest_tag, self._current_version):
                 self.update_available.emit(latest_release)
+            elif self._notify_when_latest:
+                self.already_latest.emit(latest_tag or self._current_version)
         except Exception as exc:
             self.check_failed.emit(str(exc))
 

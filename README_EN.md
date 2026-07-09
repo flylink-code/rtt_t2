@@ -1,4 +1,4 @@
-# RTT_T2 v1.0.2
+# RTT_T2 v1.0.3
 
 English | [中文](README.md)
 
@@ -6,10 +6,16 @@ A Windows debugging tool (forked from [lh-hg/rtt_t2](https://github.com/lh-hg/rt
 
 > Downloads: [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
 
+## v1.0.3
+
+- **UI cleanup**: connection/config/wave actions moved into menus; filter dialog; sidebar quick actions
+- **About & update check**: Help menu with about info and manual GitHub update check
+- **Status bar**: shows current filter state
+
 ## v1.0.2
 
-- **Windows MSI installer** on GitHub Releases with custom install directory
-- **GitHub auto-update** on startup; Windows prefers MSI downloads
+- **Windows installers** on GitHub Releases: setup.exe (custom install dir) and zip
+- **GitHub auto-update** on startup; Windows prefers installer downloads
 - **Per-user data** in `%LOCALAPPDATA%\rtt_t2\` for installed builds
 
 ## v1.0.1
@@ -33,19 +39,18 @@ v1.0 is a full PySide6 rewrite. The window is organized as **toolbar**, **left s
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
-│ Toolbar: Connect | Config | Wave | Timestamp | Save | Find … │
+│ Menu: Connection | View | Tools | Help           [Theme btn] │
 ├──────────┬───────────────────────────────────────────────────┤
-│ Sidebar  │  [Optional] Filter dock: expression | enable | inv  │
-│          ├───────────────────────────────────────────────────┤
-│ HW mode  │                                                   │
-│ View mode│              Main area (log / terminal)            │
+│ Sidebar  │                                                   │
+│ HW mode  │              Main area (log / terminal)            │
+│ View mode│                                                   │
 │ Commands │                                                   │
 │ Target   │                                                   │
 │ Connect  │                                                   │
 ├──────────┴───────────────────────────────────────────────────┤
 │ Send panel (log mode): ASC/HEX | history | encoding | EOL     │
 ├──────────────────────────────────────────────────────────────┤
-│ Status: connection | target | RX | TX | view state           │
+│ Status: connection | target | RX | TX | view | filter        │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -70,9 +75,16 @@ v1.0 is a full PySide6 rewrite. The window is organized as **toolbar**, **left s
 
 In **terminal mode** the bottom send panel is hidden; typing happens in the main area. In **log mode** the send panel is used for ASC / HEX payloads.
 
-### Toolbar
+### Menus
 
-Mirrors sidebar actions plus **timestamp**, **save all**, **real-time save**, **pause follow**, **scroll to bottom**, and **find** (`Ctrl+F`).
+| Menu | Actions |
+|------|---------|
+| **Connection** | Connect/disconnect, hardware config, waveform, custom commands, log folder |
+| **View** | Pause follow, scroll to bottom, timestamp, theme toggle |
+| **Tools** | Find (`Ctrl+F`), filter settings, enable filter, save all, real-time save |
+| **Help** | Check for updates, About |
+
+Configure filter expressions under **Tools → Filter**; the status bar shows the current filter state.
 
 ### Config dialog
 
@@ -165,9 +177,9 @@ Docs:
 
 ### Log filter (log mode only)
 
-1. Filter dock: `TAG=DLOG` or `TAG=DLOG&&TAG=BDS`
+1. **Tools → Filter**: `TAG=DLOG` or `TAG=DLOG&&TAG=BDS`
 2. Enable; use **Invert** to keep only matches
-3. Prefer keywords with length ≥ 3
+3. Quick toggle via **Tools → Enable filter**; prefer keywords with length ≥ 3
 
 ### Custom commands
 

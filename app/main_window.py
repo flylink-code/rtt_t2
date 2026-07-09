@@ -11,12 +11,9 @@ from PySide6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
-    QCheckBox,
-    QDockWidget,
     QFrame,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QMainWindow,
     QMenu,
     QMessageBox,
@@ -34,10 +31,13 @@ from PySide6.QtWidgets import (
 
 from app.theme_icons import make_theme_switch_icon
 from app.theme_loader import apply_theme
+from app.dialogs.about_dialog import AboutDialog
 from app.dialogs.custom_commands_dialog import CustomCommandsDialog
+from app.dialogs.filter_dialog import FilterDialog
 from app.dialogs.find_dialog import FindDialog
 from app.dialogs.hw_config_dialog import HwConfigDialog
 from app.dialogs.update_dialog import UpdateDialog
+from app.release_info import APP_DISPLAY_NAME, GITHUB_RELEASES_PAGE
 from app.services.log_service import LogProcessor, db_data_check_error
 from app.services.session_service import (
     connect_jlink,
@@ -61,7 +61,7 @@ from app.widgets.send_panel import SendPanel
 from app.workers.hw_reader_worker import HwReaderWorker, thread_lock
 from app.workers.update_checker import DownloadWorker, HwBridge, UpdateCheckerWorker
 
-RTT_VERSION = 'v1.0.2'
+RTT_VERSION = 'v1.0.3'
 
 
 class ConnectionSidebar(QFrame):
@@ -137,6 +137,28 @@ class ConnectionSidebar(QFrame):
         row.addWidget(self.wave_btn)
         layout.addLayout(row)
 
+        layout.addWidget(QLabel('快捷操作'))
+        quick_row1 = QHBoxLayout()
+        self.save_all_btn = QPushButton('保存全部')
+        self.realtime_save_btn = QPushButton('实时保存')
+        quick_row1.addWidget(self.save_all_btn)
+        quick_row1.addWidget(self.realtime_save_btn)
+        layout.addLayout(quick_row1)
+
+        quick_row2 = QHBoxLayout()
+        self.pause_btn = QPushButton('暂停跟随')
+        self.scroll_bottom_btn = QPushButton('滚到底')
+        quick_row2.addWidget(self.pause_btn)
+        quick_row2.addWidget(self.scroll_bottom_btn)
+        layout.addLayout(quick_row2)
+
+        quick_row3 = QHBoxLayout()
+        self.timestamp_btn = QPushButton('时间戳')
+        self.filter_btn = QPushButton('过滤器')
+        quick_row3.addWidget(self.timestamp_btn)
+        quick_row3.addWidget(self.filter_btn)
+        layout.addLayout(quick_row3)
+
         self.log_dir_btn = QPushButton('日志目录')
         layout.addWidget(self.log_dir_btn)
         layout.addStretch()
@@ -146,6 +168,15 @@ class ConnectionSidebar(QFrame):
         self.connect_btn.setProperty('connected', connected)
         self.connect_btn.style().unpolish(self.connect_btn)
         self.connect_btn.style().polish(self.connect_btn)
+
+    def set_realtime_save_text(self, text):
+        self.realtime_save_btn.setText(text)
+
+    def set_pause_text(self, text):
+        self.pause_btn.setText(text)
+
+    def set_timestamp_text(self, text):
+        self.timestamp_btn.setText(text)
 
     def refresh_target(self, js_cfg):
         self.target_label.setText(get_target_display_name(js_cfg))
@@ -178,9 +209,12 @@ class MainWindow(QMainWindow):
         self.timestamp_enabled = False
         self.terminal_paused = js_cfg.get('terminal_paused', False)
         self.find_dialog = None
+        self.about_dialog = None
         self.update_dialog = None
+        self.update_worker = None
         self.download_worker = None
         self.pending_update_file = ''
+        self.manual_update_check = False
         self.log_processor = LogProcessor()
 
         self.hw_bridge = HwBridge()
@@ -205,13 +239,14 @@ class MainWindow(QMainWindow):
         self.log_timer.start()
 
         if self.js_cfg.get('update_flag', True):
-            self.update_worker = UpdateCheckerWorker(RTT_VERSION, self)
-            self.update_worker.update_available.connect(self._on_update_available)
-            self.update_worker.start()
+            self._start_update_check(manual=False)
 
         self._refresh_status()
         self.log_terminal.set_paused(self.terminal_paused)
         self.console_terminal.set_paused(self.terminal_paused)
+        pause_text = '恢复跟随' if self.terminal_paused else '暂停跟随'
+        self.pause_action.setText(pause_text)
+        self.sidebar.set_pause_text(pause_text)
         self._apply_ui_layout()
 
     def _active_terminal(self):
@@ -234,43 +269,15 @@ class MainWindow(QMainWindow):
         self.console_terminal.set_history_provider(lambda: self.js_cfg.get('user_input_data', []))
 
     def _build_ui(self):
-        self.setWindowTitle(RTT_VERSION)
+        self.setWindowTitle('%s %s' % (APP_DISPLAY_NAME, RTT_VERSION))
         self.setMinimumSize(1100, 700)
         icon_path = os.path.join(config_manager.get_app_dir(), 'tool.ico')
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
 
-        toolbar = QToolBar('主工具栏')
-        toolbar.setMovable(False)
-        self.addToolBar(toolbar)
-
-        self.connect_action = QAction('连接', self)
-        self.config_action = QAction('配置', self)
-        self.wave_action = QAction('波形绘制', self)
-        self.timestamp_action = QAction('时间戳', self)
-        self.save_all_action = QAction('保存全部', self)
-        self.realtime_save_action = QAction('实时保存', self)
-        self.pause_action = QAction('暂停跟随', self)
-        self.scroll_bottom_action = QAction('滚动到底', self)
-        self.find_action = QAction('查找', self)
-        for action in (
-            self.connect_action, self.config_action, self.wave_action,
-            self.timestamp_action, self.save_all_action, self.realtime_save_action,
-            self.pause_action, self.scroll_bottom_action, self.find_action,
-        ):
-            toolbar.addAction(action)
-
-        toolbar_spacer = QWidget()
-        toolbar_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        toolbar.addWidget(toolbar_spacer)
-
-        self.theme_toggle_btn = QToolButton(self)
-        self.theme_toggle_btn.setAutoRaise(True)
-        self.theme_toggle_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        self.theme_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.theme_toggle_btn.clicked.connect(self._toggle_theme_quick)
-        toolbar.addWidget(self.theme_toggle_btn)
-        self._refresh_theme_toggle()
+        self._create_actions()
+        self._build_menu_bar()
+        self._build_theme_toolbar()
 
         central = QWidget()
         root = QHBoxLayout(central)
@@ -316,22 +323,6 @@ class MainWindow(QMainWindow):
         root.addLayout(right, stretch=1)
         self.setCentralWidget(central)
 
-        self.filter_dock = QDockWidget('过滤器', self)
-        self.filter_dock.setObjectName('filterDock')
-        filter_widget = QWidget()
-        filter_layout = QHBoxLayout(filter_widget)
-        self.filter_edit = QLineEdit(self.js_cfg.get('filter', ''))
-        self.filter_enable = QCheckBox('启用')
-        self.filter_enable.setChecked(self.js_cfg.get('filter_en', False))
-        self.filter_inverse = QCheckBox('取反')
-        filter_layout.addWidget(QLabel('表达式'))
-        filter_layout.addWidget(self.filter_edit, stretch=1)
-        filter_layout.addWidget(self.filter_enable)
-        filter_layout.addWidget(self.filter_inverse)
-        self.filter_dock.setWidget(filter_widget)
-        self.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, self.filter_dock)
-        self.filter_dock.setVisible(self.js_cfg.get('send_panel_mode', 'expanded') == 'expanded')
-
         status = QStatusBar()
         self.setStatusBar(status)
         self.status_connection = QLabel('未连接')
@@ -339,11 +330,90 @@ class MainWindow(QMainWindow):
         self.status_rx = QLabel('RX 0')
         self.status_tx = QLabel('TX 0')
         self.status_view = QLabel('跟随输出')
-        for widget in (self.status_connection, self.status_target, self.status_rx, self.status_tx, self.status_view):
+        self.status_filter = QLabel('')
+        for widget in (
+            self.status_connection,
+            self.status_target,
+            self.status_rx,
+            self.status_tx,
+            self.status_view,
+            self.status_filter,
+        ):
             status.addPermanentWidget(widget)
+        self._refresh_filter_status()
+
+    def _create_actions(self):
+        self.connect_action = QAction('连接(&C)', self)
+        self.config_action = QAction('硬件配置(&O)...', self)
+        self.wave_action = QAction('波形绘制(&W)', self)
+        self.custom_cmds_action = QAction('自定义命令...', self)
+        self.log_dir_action = QAction('打开日志目录', self)
+        self.timestamp_action = QAction('时间戳', self)
+        self.save_all_action = QAction('保存全部', self)
+        self.realtime_save_action = QAction('实时保存', self)
+        self.pause_action = QAction('暂停跟随', self)
+        self.scroll_bottom_action = QAction('滚动到底', self)
+        self.find_action = QAction('查找(&F)...', self)
+        self.find_action.setShortcut(QKeySequence('Ctrl+F'))
+        self.filter_action = QAction('过滤器(&L)...', self)
+        self.filter_enable_action = QAction('启用过滤器', self)
+        self.filter_enable_action.setCheckable(True)
+        self.filter_enable_action.setChecked(bool(self.js_cfg.get('filter_en', False)))
+        self.theme_action = QAction('切换主题', self)
+        self.check_update_action = QAction('检查更新(&U)', self)
+        self.about_action = QAction('关于(&A)', self)
+
+    def _build_menu_bar(self):
+        menu_bar = self.menuBar()
+
+        connection_menu = menu_bar.addMenu('连接(&N)')
+        connection_menu.addAction(self.connect_action)
+        connection_menu.addSeparator()
+        connection_menu.addAction(self.config_action)
+        connection_menu.addAction(self.wave_action)
+        connection_menu.addAction(self.custom_cmds_action)
+        connection_menu.addSeparator()
+        connection_menu.addAction(self.log_dir_action)
+
+        view_menu = menu_bar.addMenu('查看(&V)')
+        view_menu.addAction(self.pause_action)
+        view_menu.addAction(self.scroll_bottom_action)
+        view_menu.addAction(self.timestamp_action)
+        view_menu.addSeparator()
+        view_menu.addAction(self.theme_action)
+
+        tools_menu = menu_bar.addMenu('工具(&T)')
+        tools_menu.addAction(self.find_action)
+        tools_menu.addAction(self.filter_action)
+        tools_menu.addAction(self.filter_enable_action)
+        tools_menu.addSeparator()
+        tools_menu.addAction(self.save_all_action)
+        tools_menu.addAction(self.realtime_save_action)
+
+        help_menu = menu_bar.addMenu('帮助(&H)')
+        help_menu.addAction(self.check_update_action)
+        help_menu.addSeparator()
+        help_menu.addAction(self.about_action)
+
+    def _build_theme_toolbar(self):
+        toolbar = QToolBar('主题')
+        toolbar.setMovable(False)
+        toolbar.setObjectName('themeToolbar')
+        self.addToolBar(toolbar)
+
+        toolbar_spacer = QWidget()
+        toolbar_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        toolbar.addWidget(toolbar_spacer)
+
+        self.theme_toggle_btn = QToolButton(self)
+        self.theme_toggle_btn.setAutoRaise(True)
+        self.theme_toggle_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        self.theme_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.theme_toggle_btn.clicked.connect(self._toggle_theme_quick)
+        toolbar.addWidget(self.theme_toggle_btn)
+        self._refresh_theme_toggle()
 
     def _bind_shortcuts(self):
-        QShortcut(QKeySequence('Ctrl+F'), self, activated=self._open_find_dialog)
         QShortcut(QKeySequence('Ctrl+Return'), self.send_panel.input_edit, activated=self._insert_send_newline)
 
     def _connect_signals(self):
@@ -353,13 +423,27 @@ class MainWindow(QMainWindow):
         self.sidebar.config_btn.clicked.connect(self._open_config)
         self.wave_action.triggered.connect(self._open_wave)
         self.sidebar.wave_btn.clicked.connect(self._open_wave)
+        self.log_dir_action.triggered.connect(self._open_log_dir)
         self.sidebar.log_dir_btn.clicked.connect(self._open_log_dir)
+        self.custom_cmds_action.triggered.connect(self._open_custom_commands)
+        self.sidebar.custom_cmds_btn.clicked.connect(self._open_custom_commands)
         self.timestamp_action.triggered.connect(self._toggle_timestamp)
+        self.sidebar.timestamp_btn.clicked.connect(self._toggle_timestamp)
         self.save_all_action.triggered.connect(self._save_all_data)
+        self.sidebar.save_all_btn.clicked.connect(self._save_all_data)
         self.realtime_save_action.triggered.connect(self._toggle_realtime_save)
+        self.sidebar.realtime_save_btn.clicked.connect(self._toggle_realtime_save)
         self.pause_action.triggered.connect(self._toggle_pause)
+        self.sidebar.pause_btn.clicked.connect(self._toggle_pause)
         self.scroll_bottom_action.triggered.connect(self._scroll_to_bottom)
+        self.sidebar.scroll_bottom_btn.clicked.connect(self._scroll_to_bottom)
         self.find_action.triggered.connect(self._open_find_dialog)
+        self.filter_action.triggered.connect(self._open_filter_dialog)
+        self.sidebar.filter_btn.clicked.connect(self._open_filter_dialog)
+        self.filter_enable_action.toggled.connect(self._on_filter_enable_toggled)
+        self.theme_action.triggered.connect(self._toggle_theme_quick)
+        self.check_update_action.triggered.connect(self._check_for_updates)
+        self.about_action.triggered.connect(self._open_about_dialog)
         self.send_panel.send_requested.connect(self._send_data)
         self.send_panel.history_delete_requested.connect(self._delete_history_item)
 
@@ -367,14 +451,11 @@ class MainWindow(QMainWindow):
         self.sidebar.ser_radio.toggled.connect(self._on_mode_radio_changed)
         self.sidebar.log_layout_radio.toggled.connect(self._on_layout_changed)
         self.sidebar.terminal_layout_radio.toggled.connect(self._on_layout_changed)
-        self.sidebar.custom_cmds_btn.clicked.connect(self._open_custom_commands)
 
         self.console_terminal.line_committed.connect(self._on_console_line_committed)
         self.console_terminal.bytes_send_requested.connect(self._on_console_bytes_send)
         self._sync_terminal_console_settings()
 
-        self.filter_edit.textChanged.connect(self._save_filter_config)
-        self.filter_enable.toggled.connect(self._save_filter_config)
         self.send_panel.char_format_combo.currentTextChanged.connect(self._on_char_format_changed)
         self.send_panel.line_break_combo.currentTextChanged.connect(self._on_line_break_changed)
 
@@ -518,10 +599,12 @@ class MainWindow(QMainWindow):
             self.hw_obj.open_timestamp()
             self.timestamp_enabled = True
             self.timestamp_action.setText('关闭时间戳')
+            self.sidebar.set_timestamp_text('关时间戳')
         else:
             self.hw_obj.close_timestamp()
             self.timestamp_enabled = False
             self.timestamp_action.setText('时间戳')
+            self.sidebar.set_timestamp_text('时间戳')
 
     def _toggle_realtime_save(self):
         if not self.real_time_save_enabled:
@@ -530,10 +613,12 @@ class MainWindow(QMainWindow):
                 self.real_time_save_file = file_name
                 self.real_time_save_enabled = True
                 self.realtime_save_action.setText('停止实时保存')
+                self.sidebar.set_realtime_save_text('停实时')
         else:
             self.real_time_save_enabled = False
             self.realtime_save_file = ''
             self.realtime_save_action.setText('实时保存')
+            self.sidebar.set_realtime_save_text('实时保存')
 
     def _save_all_data(self):
         data = self._active_terminal().get_all_text()
@@ -579,7 +664,9 @@ class MainWindow(QMainWindow):
         self.js_cfg['terminal_paused'] = self.terminal_paused
         self.log_terminal.set_paused(self.terminal_paused)
         self.console_terminal.set_paused(self.terminal_paused)
-        self.pause_action.setText('恢复跟随' if self.terminal_paused else '暂停跟随')
+        pause_text = '恢复跟随' if self.terminal_paused else '暂停跟随'
+        self.pause_action.setText(pause_text)
+        self.sidebar.set_pause_text('恢复跟随' if self.terminal_paused else '暂停跟随')
         config_manager.save_config(self.js_cfg)
         self._refresh_status()
 
@@ -589,6 +676,8 @@ class MainWindow(QMainWindow):
         self.console_terminal.set_paused(False)
         self.log_terminal.scroll_to_bottom()
         self.console_terminal.scroll_to_bottom()
+        self.pause_action.setText('暂停跟随')
+        self.sidebar.set_pause_text('暂停跟随')
         self._refresh_status()
 
     def _terminal_context_menu(self, pos):
@@ -695,10 +784,33 @@ class MainWindow(QMainWindow):
             config_manager.save_config(self.js_cfg)
             self.send_panel.set_history(self.js_cfg['user_input_data'])
 
-    def _save_filter_config(self):
-        self.js_cfg['filter'] = self.filter_edit.text()
-        self.js_cfg['filter_en'] = self.filter_enable.isChecked()
+    def _open_filter_dialog(self):
+        dialog = FilterDialog(self.js_cfg, self)
+        if dialog.exec():
+            dialog.apply_to_config()
+            self.filter_enable_action.blockSignals(True)
+            self.filter_enable_action.setChecked(bool(self.js_cfg.get('filter_en', False)))
+            self.filter_enable_action.blockSignals(False)
+            config_manager.save_config(self.js_cfg)
+            self._refresh_filter_status()
+
+    def _on_filter_enable_toggled(self, checked):
+        self.js_cfg['filter_en'] = checked
         config_manager.save_config(self.js_cfg)
+        self._refresh_filter_status()
+
+    def _refresh_filter_status(self):
+        enabled = bool(self.js_cfg.get('filter_en', False))
+        expression = (self.js_cfg.get('filter') or '').strip()
+        if not enabled:
+            self.status_filter.setText('过滤: 关')
+            return
+        if not expression:
+            self.status_filter.setText('过滤: 开(空)')
+            return
+        inverse = '取反 ' if self.js_cfg.get('filter_inverse', False) else ''
+        preview = expression if len(expression) <= 24 else expression[:21] + '...'
+        self.status_filter.setText('过滤: %s%s' % (inverse, preview))
 
     def _on_char_format_changed(self, value):
         self.js_cfg['char_format'] = value
@@ -719,9 +831,9 @@ class MainWindow(QMainWindow):
             result = self.log_processor.process_queue(
                 self.hw_obj,
                 self.js_cfg,
-                self.filter_enable.isChecked(),
-                self.filter_edit.text(),
-                self.filter_inverse.isChecked(),
+                bool(self.js_cfg.get('filter_en', False)),
+                self.js_cfg.get('filter', ''),
+                bool(self.js_cfg.get('filter_inverse', False)),
             )
             if result:
                 self.log_terminal.append_log_result(result)
@@ -766,7 +878,49 @@ class MainWindow(QMainWindow):
     def _on_hw_warn(self, message):
         self._active_terminal().append_plain('[BDS LOG] ' + message)
 
+    def _open_about_dialog(self):
+        if self.about_dialog is not None:
+            self.about_dialog.raise_()
+            self.about_dialog.activateWindow()
+            return
+        icon_path = os.path.join(config_manager.get_app_dir(), 'tool.ico')
+        self.about_dialog = AboutDialog(RTT_VERSION, icon_path=icon_path, parent=self)
+        self.about_dialog.check_btn.clicked.connect(self._check_for_updates)
+        self.about_dialog.finished.connect(self._on_about_closed)
+        self.about_dialog.show()
+        self.about_dialog.raise_()
+        self.about_dialog.activateWindow()
+
+    def _on_about_closed(self):
+        self.about_dialog = None
+
+    def _check_for_updates(self):
+        self._start_update_check(manual=True)
+
+    def _start_update_check(self, manual=False):
+        if self.update_worker is not None and self.update_worker.isRunning():
+            if manual:
+                QMessageBox.information(self, '检查更新', '正在检查更新，请稍候…')
+            return
+        self.manual_update_check = manual
+        if self.about_dialog is not None and manual:
+            self.about_dialog.set_checking(True)
+        self.update_worker = UpdateCheckerWorker(
+            RTT_VERSION,
+            self,
+            notify_when_latest=manual,
+        )
+        self.update_worker.update_available.connect(self._on_update_available)
+        self.update_worker.already_latest.connect(self._on_already_latest)
+        self.update_worker.check_failed.connect(self._on_update_check_failed)
+        self.update_worker.finished.connect(self._clear_update_worker)
+        self.update_worker.start()
+
     def _on_update_available(self, latest_release):
+        if self.about_dialog is not None:
+            self.about_dialog.set_status(
+                '发现新版本 %s，请在更新窗口中下载。' % latest_release.get('tag_name', '')
+            )
         if self.update_dialog is not None:
             return
         self.update_dialog = UpdateDialog(latest_release, self)
@@ -777,6 +931,23 @@ class MainWindow(QMainWindow):
         if result and self.update_dialog.get_download_path():
             self.pending_update_file = self.update_dialog.get_download_path()
         self.update_dialog = None
+
+    def _on_already_latest(self, latest_tag):
+        message = '当前已是最新版本（%s）。' % latest_tag
+        if self.about_dialog is not None:
+            self.about_dialog.set_status(message)
+        if self.manual_update_check and self.about_dialog is None:
+            QMessageBox.information(self, '检查更新', message)
+
+    def _on_update_check_failed(self, message):
+        text = '检查更新失败：%s\n也可手动访问：%s' % (message, GITHUB_RELEASES_PAGE)
+        if self.about_dialog is not None:
+            self.about_dialog.set_status(text)
+        if self.manual_update_check and self.about_dialog is None:
+            QMessageBox.warning(self, '检查更新', text)
+
+    def _clear_update_worker(self):
+        self.update_worker = None
 
     def _start_download(self, latest_release):
         if self.download_worker is not None:
@@ -810,7 +981,7 @@ class MainWindow(QMainWindow):
     def _refresh_status(self):
         self.connected = self.hw_obj.hw_is_open()
         self.sidebar.set_connected(self.connected)
-        self.connect_action.setText('断开连接' if self.connected else '连接')
+        self.connect_action.setText('断开连接(&C)' if self.connected else '连接(&C)')
         self.status_connection.setText('已连接' if self.connected else '未连接')
         self.status_target.setText(get_target_display_name(self.js_cfg))
         self.status_rx.setText('RX %d' % self.rx_bytes)
@@ -824,6 +995,7 @@ class MainWindow(QMainWindow):
         else:
             view = '浏览历史'
         self.status_view.setText(view)
+        self._refresh_filter_status()
 
     def closeEvent(self, event):
         self.js_cfg['terminal_paused'] = self.terminal_paused
