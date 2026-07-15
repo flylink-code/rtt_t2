@@ -377,6 +377,9 @@ class BDS_Jlink(HardWareBase):
             else:
                 self.err_cb('J_Link: 不支持的数据格式%s.\n' % self.char_format)
         except Exception as e:
+            # A removed J-Link makes every polling read fail. Stop polling before
+            # queuing the error signal so only this failure is reported.
+            self.rtt_is_start = False
             self.err_cb('J_Link:%s\n' % e)
 
 
