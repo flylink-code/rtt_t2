@@ -7,6 +7,14 @@ GITHUB_API_HEADERS = {
     'Accept': 'application/vnd.github+json',
     'User-Agent': 'rtt_t2-updater',
 }
+GITEE_REPO = 'zworkspace/rtt_t2'
+GITEE_REPO_PAGE = 'https://gitee.com/%s' % GITEE_REPO
+GITEE_RELEASES_API = 'https://gitee.com/api/v5/repos/%s/releases' % GITEE_REPO
+GITEE_RELEASES_PAGE = GITEE_REPO_PAGE + '/releases'
+GITEE_API_HEADERS = {
+    'Accept': 'application/json',
+    'User-Agent': 'rtt_t2-updater',
+}
 UPSTREAM_REPO_PAGE = 'https://github.com/lh-hg/rtt_t2'
 LOG_DIR_NAME = 'logs'
 APP_DATA_DIR_NAME = 'rtt_t2'

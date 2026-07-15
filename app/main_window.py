@@ -61,7 +61,7 @@ from app.widgets.send_panel import SendPanel
 from app.workers.hw_reader_worker import HwReaderWorker, thread_lock
 from app.workers.update_checker import DownloadWorker, HwBridge, UpdateCheckerWorker
 
-RTT_VERSION = 'v1.0.6'
+RTT_VERSION = 'v1.0.8'
 
 
 class ConnectionSidebar(QFrame):

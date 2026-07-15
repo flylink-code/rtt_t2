@@ -1,10 +1,14 @@
-# RTT_T2 v1.0.6
+# RTT_T2 v1.0.8
 
 English | [中文](README.md)
 
 A Windows debugging tool (forked from [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2)) for **J-Link RTT** and **serial** logging, interactive terminals, payload sending, and live waveforms.
 
 > Downloads: [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
+
+## v1.0.8
+
+- **Update mirrors**: Gitee is preferred in China, GitHub elsewhere, with automatic fallback
 
 ## v1.0.6
 

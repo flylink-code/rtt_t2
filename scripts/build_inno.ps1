@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $RootDir = Split-Path -Parent $PSScriptRoot
 Set-Location $RootDir
 
-$VersionTag = if ($env:RTT_VERSION) { $env:RTT_VERSION } else { 'v1.0.6' }
+$VersionTag = if ($env:RTT_VERSION) { $env:RTT_VERSION } else { 'v1.0.8' }
 $Version = $VersionTag.TrimStart('v', 'V')
 
 $DistFolder = Join-Path $RootDir 'dist\rtt_t2'

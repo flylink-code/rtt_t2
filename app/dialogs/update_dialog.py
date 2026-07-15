@@ -9,9 +9,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from app.release_info import GITHUB_RELEASES_PAGE
-
-
 class UpdateDialog(QDialog):
     download_requested = Signal()
 
@@ -30,9 +27,11 @@ class UpdateDialog(QDialog):
         self.info_label.setWordWrap(True)
         layout.addWidget(self.info_label)
 
-        github = QLabel('<a href="%s">GitHub 下载地址</a>' % GITHUB_RELEASES_PAGE)
-        github.setOpenExternalLinks(True)
-        layout.addWidget(github)
+        releases_page = latest_release.get('release_page')
+        if releases_page:
+            download_page = QLabel('<a href="%s">发行版下载地址</a>' % releases_page)
+            download_page.setOpenExternalLinks(True)
+            layout.addWidget(download_page)
 
         self.progress = QProgressBar()
         layout.addWidget(self.progress)

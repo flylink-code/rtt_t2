@@ -19,7 +19,7 @@ pip install -r requirements.txt pyinstaller
 rm -rf build dist
 pyinstaller rtt_t2.spec --noconfirm
 
-VERSION="${RTT_VERSION:-v1.0.6}"
+VERSION="${RTT_VERSION:-v1.0.8}"
 ARCHIVE="dist/rtt_t2-${VERSION}-linux-x64.tar.gz"
 tar -czf "$ARCHIVE" -C dist rtt_t2
 echo "Created $ARCHIVE"
