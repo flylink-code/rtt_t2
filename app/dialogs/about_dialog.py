@@ -1,6 +1,6 @@
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import (
+from app.qt import (
+    Qt,
+    QIcon,
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,

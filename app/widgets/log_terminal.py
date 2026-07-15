@@ -1,6 +1,4 @@
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QColor, QFont, QPalette, QTextCharFormat, QTextCursor
-from PySide6.QtWidgets import QPlainTextEdit
+from app.qt import QColor, QFont, QPalette, QPlainTextEdit, QTextCharFormat, QTextCursor, Qt, QTimer
 
 from app.services.log_service import LEGACY_DEFAULT_LOG_COLOR
 

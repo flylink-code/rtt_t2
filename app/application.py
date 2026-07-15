@@ -3,7 +3,7 @@ import sys
 
 import bds.bds_serial as bds_ser
 import config_manager
-from PySide6.QtWidgets import QApplication
+from app.qt import QApplication
 
 from app.fonts import apply_application_fonts, resolve_font_settings
 from app.main_window import MainWindow

@@ -3,8 +3,9 @@ import config_manager
 from app.chip_catalog import detect_chip_vendor, get_chip_catalog, is_chip_header, iter_sorted_vendors
 from app.services.session_service import extract_and_convert_hex
 from app.themes import THEME_DARK, THEME_LABELS, THEMES, normalize_theme
-from PySide6.QtCore import QTimer, Qt
-from PySide6.QtWidgets import (
+from app.qt import (
+    QTimer,
+    Qt,
     QButtonGroup,
     QCheckBox,
     QComboBox,

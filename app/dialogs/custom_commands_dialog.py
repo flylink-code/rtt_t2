@@ -1,5 +1,6 @@
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (
+from app.qt import (
+    Qt,
+    Signal,
     QComboBox,
     QDialog,
     QDialogButtonBox,
