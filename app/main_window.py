@@ -61,7 +61,7 @@ from app.widgets.send_panel import SendPanel
 from app.workers.hw_reader_worker import HwReaderWorker, thread_lock
 from app.workers.update_checker import DownloadWorker, HwBridge, UpdateCheckerWorker
 
-RTT_VERSION = 'v1.0.4'
+RTT_VERSION = 'v1.0.5'
 
 
 class ConnectionSidebar(QFrame):
@@ -330,6 +330,7 @@ class MainWindow(QMainWindow):
         self.status_rx = QLabel('RX 0')
         self.status_tx = QLabel('TX 0')
         self.status_view = QLabel('跟随输出')
+        self.status_encoding = QLabel()
         self.status_filter = QLabel('')
         for widget in (
             self.status_connection,
@@ -337,6 +338,7 @@ class MainWindow(QMainWindow):
             self.status_rx,
             self.status_tx,
             self.status_view,
+            self.status_encoding,
             self.status_filter,
         ):
             status.addPermanentWidget(widget)
@@ -995,6 +997,7 @@ class MainWindow(QMainWindow):
         else:
             view = '浏览历史'
         self.status_view.setText(view)
+        self.status_encoding.setText('编码: %s' % self.js_cfg['char_format'])
         self._refresh_filter_status()
 
     def closeEvent(self, event):

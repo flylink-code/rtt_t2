@@ -55,7 +55,7 @@ DEFAULT_CONFIG = {
     ],
     "ser_com": "COM1",
     "ser_des": "通信端口 (COM1)",
-    "char_format": "asc",
+    "char_format": "utf-8",
     "update_flag": True,
     "line_break": "\n",
     "ui_theme": "dark",

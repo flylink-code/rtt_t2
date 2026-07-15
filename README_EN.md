@@ -1,10 +1,15 @@
-# RTT_T2 v1.0.4
+# RTT_T2 v1.0.5
 
 English | [中文](README.md)
 
 A Windows debugging tool (forked from [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2)) for **J-Link RTT** and **serial** logging, interactive terminals, payload sending, and live waveforms.
 
 > Downloads: [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
+
+## v1.0.5
+
+- **Default encoding**: new configurations now use `utf-8`
+- **Status bar**: shows the active character encoding and updates immediately when changed
 
 ## v1.0.4
 
