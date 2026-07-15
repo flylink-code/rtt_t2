@@ -1,10 +1,14 @@
-# RTT_T2 v1.0.5
+# RTT_T2 v1.0.6
 
 [English](README_EN.md) | 中文
 
 基于 [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2) fork 的 Windows 嵌入式调试工具，面向 **J-Link RTT** 与 **串口** 日志查看、交互终端、数据发送和波形观察。
 
 > 发行版与更新见 [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
+
+## v1.0.6 更新
+
+- **自动更新**：安装包下载完成后显示提示，并自动关闭软件启动安装程序
 
 ## v1.0.5 更新
 

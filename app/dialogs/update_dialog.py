@@ -68,6 +68,11 @@ class UpdateDialog(QDialog):
     def set_download_path(self, path):
         self._download_path = path
 
+    def show_download_complete(self):
+        self.progress.setValue(100)
+        self.status_label.setText('下载完成，正在关闭软件并启动安装程序...')
+        self.later_btn.setEnabled(False)
+
     def get_download_path(self):
         return self._download_path
 

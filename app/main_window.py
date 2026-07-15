@@ -61,7 +61,7 @@ from app.widgets.send_panel import SendPanel
 from app.workers.hw_reader_worker import HwReaderWorker, thread_lock
 from app.workers.update_checker import DownloadWorker, HwBridge, UpdateCheckerWorker
 
-RTT_VERSION = 'v1.0.5'
+RTT_VERSION = 'v1.0.6'
 
 
 class ConnectionSidebar(QFrame):
@@ -214,6 +214,7 @@ class MainWindow(QMainWindow):
         self.update_worker = None
         self.download_worker = None
         self.pending_update_file = ''
+        self.update_install_scheduled = False
         self.manual_update_check = False
         self.log_processor = LogProcessor()
 
@@ -968,10 +969,17 @@ class MainWindow(QMainWindow):
             self.update_dialog.set_progress(percent)
 
     def _on_download_finished(self, path):
+        self.pending_update_file = path
         if self.update_dialog:
             self.update_dialog.set_download_path(path)
-            self.update_dialog.set_progress(100)
+            self.update_dialog.show_download_complete()
+        self.update_install_scheduled = True
+        QTimer.singleShot(1500, self._install_downloaded_update)
+
+    def _install_downloaded_update(self):
+        if self.update_dialog:
             self.update_dialog.accept()
+        self.close()
 
     def _on_download_failed(self, message):
         if self.update_dialog:
@@ -1013,5 +1021,10 @@ class MainWindow(QMainWindow):
         finally:
             thread_lock.release()
         if self.pending_update_file:
-            os.startfile(self.pending_update_file)
+            try:
+                os.startfile(self.pending_update_file)
+            except OSError as exc:
+                log.error('failed to start update installer: %s', exc)
+                if self.update_install_scheduled:
+                    QMessageBox.warning(self, '启动更新失败', str(exc))
         event.accept()

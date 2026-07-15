@@ -20,7 +20,7 @@ if (Test-Path dist) { Remove-Item -Recurse -Force dist }
 
 & (Join-Path $RootDir '.venv\Scripts\pyinstaller.exe') (Join-Path $RootDir 'rtt_t2.spec') --noconfirm
 
-$Version = if ($env:RTT_VERSION) { $env:RTT_VERSION } else { 'v1.0.5' }
+$Version = if ($env:RTT_VERSION) { $env:RTT_VERSION } else { 'v1.0.6' }
 $Archive = Join-Path $RootDir "dist\rtt_t2-$Version-windows-x64.zip"
 if (Test-Path $Archive) { Remove-Item -Force $Archive }
 $DistFolder = Join-Path $RootDir 'dist\rtt_t2'
