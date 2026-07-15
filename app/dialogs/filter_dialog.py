@@ -1,4 +1,4 @@
-from app.qt import (
+from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
     QDialogButtonBox,

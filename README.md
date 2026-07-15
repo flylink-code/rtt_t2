@@ -1,17 +1,10 @@
-# RTT_T2 v1.0.7
+# RTT_T2 v1.0.6
 
 [English](README_EN.md) | 中文
 
 基于 [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2) fork 的 Windows 嵌入式调试工具，面向 **J-Link RTT** 与 **串口** 日志查看、交互终端、数据发送和波形观察。
 
 > 发行版与更新见 [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
-
-> Windows 7 用户请下载文件名含 `windows7` 的 x64 安装包；普通 Windows 包仅支持 Windows 10/11。
-
-## v1.0.7 更新
-
-- **Windows 7 兼容包**：新增 `windows7` 专用 x64 安装包，避免 Python 3.11 运行时不兼容
-- **更新镜像**：国内优先 Gitee，国外优先 GitHub，主源异常时自动回退
 
 ## v1.0.6 更新
 

@@ -1,14 +1,16 @@
 import sys
 
-from app.qt import (
-    Qt,
-    Signal,
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
     QDialog,
     QLabel,
     QProgressBar,
     QPushButton,
     QVBoxLayout,
 )
+
+from app.release_info import GITHUB_RELEASES_PAGE
+
 
 class UpdateDialog(QDialog):
     download_requested = Signal()
@@ -28,11 +30,9 @@ class UpdateDialog(QDialog):
         self.info_label.setWordWrap(True)
         layout.addWidget(self.info_label)
 
-        releases_page = latest_release.get('release_page')
-        if releases_page:
-            download_page = QLabel('<a href="%s">发行版下载地址</a>' % releases_page)
-            download_page.setOpenExternalLinks(True)
-            layout.addWidget(download_page)
+        github = QLabel('<a href="%s">GitHub 下载地址</a>' % GITHUB_RELEASES_PAGE)
+        github.setOpenExternalLinks(True)
+        layout.addWidget(github)
 
         self.progress = QProgressBar()
         layout.addWidget(self.progress)
@@ -40,7 +40,7 @@ class UpdateDialog(QDialog):
         layout.addWidget(self.status_label)
 
         btn_row = QVBoxLayout()
-        btn_row.setAlignment(Qt.AlignRight)
+        btn_row.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.download_btn = QPushButton('立刻更新')
         self.download_btn.clicked.connect(self._on_download_clicked)
         btn_row.addWidget(self.download_btn)

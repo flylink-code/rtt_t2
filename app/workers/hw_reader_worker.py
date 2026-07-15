@@ -1,7 +1,7 @@
 import threading
 import time
 
-from app.qt import QThread
+from PySide6.QtCore import QThread
 
 
 class HwReaderWorker(QThread):

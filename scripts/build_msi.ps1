@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $RootDir = Split-Path -Parent $PSScriptRoot
 Set-Location $RootDir
 
-$VersionTag = if ($env:RTT_VERSION) { $env:RTT_VERSION } else { 'v1.0.7' }
+$VersionTag = if ($env:RTT_VERSION) { $env:RTT_VERSION } else { 'v1.0.6' }
 $Version = $VersionTag.TrimStart('v', 'V')
 $parts = $Version.Split('.')
 while ($parts.Count -lt 3) {

@@ -2,37 +2,17 @@ import logging as log
 import sys
 
 import requests
-from app.qt import QObject, QThread, Signal
+from PySide6.QtCore import QObject, QThread, Signal
 
 from app.release_info import (
-    GITEE_API_HEADERS,
-    GITEE_RELEASES_API,
-    GITEE_RELEASES_PAGE,
     GITHUB_API_HEADERS,
     GITHUB_LATEST_RELEASE_API,
     GITHUB_RELEASES_API,
-    GITHUB_RELEASES_PAGE,
     is_newer_version,
 )
 
 
-def _is_in_china():
-    response = requests.get('https://www.cloudflare.com/cdn-cgi/trace', timeout=3)
-    response.raise_for_status()
-    return 'loc=CN' in response.text
-
-
-def _get_release_sources():
-    github = ('GitHub', GITHUB_RELEASES_API, GITHUB_API_HEADERS, GITHUB_RELEASES_PAGE)
-    gitee = ('Gitee', GITEE_RELEASES_API, GITEE_API_HEADERS, GITEE_RELEASES_PAGE)
-    try:
-        return (gitee, github) if _is_in_china() else (github, gitee)
-    except Exception as exc:
-        log.info('update region lookup failed, using Gitee first: %s', exc)
-        return gitee, github
-
-
-def _fetch_github_release():
+def _fetch_latest_release():
     try:
         response = requests.get(
             GITHUB_LATEST_RELEASE_API,
@@ -47,49 +27,21 @@ def _fetch_github_release():
             raise RuntimeError('latest release is draft')
         return release
     except Exception as exc:
-        log.info('GitHub latest release lookup failed, falling back to release list: %s', exc)
-    return None
+        log.info('latest release lookup failed, falling back to release list: %s', exc)
 
-
-def _fetch_latest_release_from(source):
-    name, releases_api, headers, releases_page = source
-    if name == 'GitHub':
-        release = _fetch_github_release()
-        if release is not None:
-            release['release_page'] = releases_page
-            return release
-
-    response = requests.get(releases_api, timeout=10, headers=headers)
+    response = requests.get(
+        GITHUB_RELEASES_API,
+        timeout=10,
+        headers=GITHUB_API_HEADERS,
+    )
     response.raise_for_status()
-    for release in response.json():
+    releases = response.json()
+    for release in releases:
         if release.get('draft') or release.get('prerelease'):
             continue
-        if release.get('tag_name'):
-            release['release_page'] = releases_page
+        tag_name = release.get('tag_name', '')
+        if tag_name:
             return release
-    return None
-
-
-def _fetch_latest_release():
-    releases = []
-    errors = []
-    for source in _get_release_sources():
-        try:
-            release = _fetch_latest_release_from(source)
-            if release is not None:
-                releases.append((source[0], release))
-        except Exception as exc:
-            errors.append('%s: %s' % (source[0], exc))
-            log.info('update lookup failed for %s: %s', source[0], exc)
-    if releases:
-        source_name, release = releases[0]
-        for candidate_source, candidate_release in releases[1:]:
-            if is_newer_version(candidate_release.get('tag_name', ''), release.get('tag_name', '')):
-                source_name, release = candidate_source, candidate_release
-        log.info('using %s update source', source_name)
-        return release
-    if errors:
-        raise RuntimeError('; '.join(errors))
     return None
 
 
@@ -99,21 +51,10 @@ def pick_release_asset(release):
         return None
 
     if sys.platform.startswith('win'):
-        is_windows_7 = sys.getwindowsversion()[:2] == (6, 1)
         candidates = [
             asset for asset in assets
             if 'windows' in asset.get('name', '').lower()
         ]
-        if is_windows_7:
-            candidates = [
-                asset for asset in candidates
-                if 'windows7' in asset.get('name', '').lower()
-            ]
-        else:
-            candidates = [
-                asset for asset in candidates
-                if 'windows7' not in asset.get('name', '').lower()
-            ]
         for asset in candidates:
             name = asset.get('name', '').lower()
             if name.endswith('.msi'):
@@ -177,13 +118,11 @@ class DownloadWorker(QThread):
         try:
             asset = pick_release_asset(self._latest_release)
             if asset is None:
-                raise RuntimeError('当前 Windows 版本没有可下载的安装包，请到发行版页面手动下载')
+                raise RuntimeError('当前版本没有可下载的安装包，请到 GitHub Releases 页面手动下载')
             home_dir = os.path.expanduser('~')
             download_dir = os.path.join(home_dir, 'Downloads')
             os.makedirs(download_dir, exist_ok=True)
-            download_url = asset.get('browser_download_url') or asset.get('download_url')
-            if not download_url:
-                raise RuntimeError('当前版本的安装包没有下载地址')
+            download_url = asset['browser_download_url']
             filename = os.path.join(download_dir, asset['name'])
             response = requests.get(
                 download_url,

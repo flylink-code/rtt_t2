@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from app.qt import QFont, QFontDatabase
+from PySide6.QtGui import QFont, QFontDatabase
 
 MONO_FONT_CANDIDATES = (
     'Cascadia Mono',

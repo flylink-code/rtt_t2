@@ -1,4 +1,5 @@
-from app.qt import QColor, QMessageBox, QTextCharFormat, QTextCursor
+from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor
+from PySide6.QtWidgets import QMessageBox
 
 from app.themes import THEME_DARK, get_theme_colors, normalize_theme
 

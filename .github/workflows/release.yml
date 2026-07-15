@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. v1.0.7)'
+        description: 'Release tag (e.g. v1.0.6)'
         required: true
-        default: 'v1.0.7'
+        default: 'v1.0.6'
 
 permissions:
   contents: write
@@ -49,27 +49,6 @@ jobs:
           RTT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
         run: ./scripts/build_inno.ps1
 
-      - name: Set up Python 3.8 for Windows 7
-        id: setup-python38
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.8'
-
-      - name: Build Windows 7 zip package
-        shell: pwsh
-        env:
-          RTT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-          PYTHON38: ${{ steps.setup-python38.outputs.python-path }}
-        run: ./scripts/package_windows7.ps1
-
-      - name: Build Windows 7 setup installer
-        shell: pwsh
-        env:
-          RTT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-          RTT_DIST_DIR: ${{ github.workspace }}\dist-win7\rtt_t2
-          RTT_PACKAGE_SUFFIX: '7'
-        run: ./scripts/build_inno.ps1
-
       - name: Collect Windows artifacts
         shell: pwsh
         env:
@@ -78,8 +57,6 @@ jobs:
           New-Item -ItemType Directory -Force -Path artifacts/windows | Out-Null
           Copy-Item "dist/rtt_t2-$env:RTT_VERSION-windows-x64.zip" artifacts/windows/
           Copy-Item "dist/rtt_t2-$env:RTT_VERSION-windows-x64-setup.exe" artifacts/windows/
-          Copy-Item "dist-win7/rtt_t2-$env:RTT_VERSION-windows7-x64.zip" artifacts/windows/
-          Copy-Item "dist/rtt_t2-$env:RTT_VERSION-windows7-x64-setup.exe" artifacts/windows/
           $msi = "dist/rtt_t2-$env:RTT_VERSION-windows-x64.msi"
           if (Test-Path $msi) {
             Copy-Item $msi artifacts/windows/

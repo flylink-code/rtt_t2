@@ -3,11 +3,10 @@ $ErrorActionPreference = 'Stop'
 $RootDir = Split-Path -Parent $PSScriptRoot
 Set-Location $RootDir
 
-$VersionTag = if ($env:RTT_VERSION) { $env:RTT_VERSION } else { 'v1.0.7' }
+$VersionTag = if ($env:RTT_VERSION) { $env:RTT_VERSION } else { 'v1.0.6' }
 $Version = $VersionTag.TrimStart('v', 'V')
 
-$DistFolder = if ($env:RTT_DIST_DIR) { $env:RTT_DIST_DIR } else { Join-Path $RootDir 'dist\rtt_t2' }
-$PackageSuffix = if ($env:RTT_PACKAGE_SUFFIX) { $env:RTT_PACKAGE_SUFFIX } else { '' }
+$DistFolder = Join-Path $RootDir 'dist\rtt_t2'
 if (-not (Test-Path $DistFolder)) {
     throw "PyInstaller output not found: $DistFolder"
 }
@@ -28,9 +27,9 @@ if (-not $IsccExe) {
 }
 
 $IssFile = Join-Path $RootDir 'installer\rtt_t2.iss'
-$SetupPath = Join-Path $RootDir "dist\rtt_t2-$VersionTag-windows$PackageSuffix-x64-setup.exe"
+$SetupPath = Join-Path $RootDir "dist\rtt_t2-$VersionTag-windows-x64-setup.exe"
 
-& $IsccExe $IssFile "/DMyAppVersion=$Version" "/DMyAppReleaseTag=$VersionTag" "/DMyAppOutputSuffix=$PackageSuffix" "/DMyAppDistDir=$DistFolder"
+& $IsccExe $IssFile "/DMyAppVersion=$Version" "/DMyAppReleaseTag=$VersionTag"
 
 if (-not (Test-Path $SetupPath)) {
     throw "Setup EXE was not created: $SetupPath"

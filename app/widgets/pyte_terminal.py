@@ -1,8 +1,7 @@
 import pyte
-from app.qt import (
-    QColor, QFont, QGuiApplication, QKeySequence, QPalette, QPlainTextEdit,
-    QTextCharFormat, QTextCursor, Qt, QTimer, Signal,
-)
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QFont, QGuiApplication, QKeySequence, QPalette, QTextCharFormat, QTextCursor
+from PySide6.QtWidgets import QPlainTextEdit
 
 from app.services.session_service import get_next_history_item
 
@@ -360,20 +359,20 @@ class PyteTerminalWidget(QPlainTextEdit):
     def _handle_key(self, event):
         key = event.key()
         modifiers = event.modifiers()
-        ctrl = modifiers & Qt.ControlModifier
+        ctrl = modifiers & Qt.KeyboardModifier.ControlModifier
 
-        if key == Qt.Key_C and ctrl:
+        if key == Qt.Key.Key_C and ctrl:
             if self.textCursor().hasSelection():
                 self.copy()
             else:
                 self.bytes_send_requested.emit([3])
             return True
 
-        if key == Qt.Key_Insert and ctrl:
+        if key == Qt.Key.Key_Insert and ctrl:
             self.copy()
             return True
 
-        if key == Qt.Key_V and ctrl:
+        if key == Qt.Key.Key_V and ctrl:
             text = QGuiApplication.clipboard().text()
             if text:
                 for char in text:
@@ -385,21 +384,21 @@ class PyteTerminalWidget(QPlainTextEdit):
                         self.bytes_send_requested.emit([ord(char)])
             return True
 
-        if key in (Qt.Key_Return, Qt.Key_Enter):
+        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self._commit_input_line()
             return True
 
-        if key == Qt.Key_Backspace:
+        if key == Qt.Key.Key_Backspace:
             if self._input_buffer:
                 self._input_buffer = self._input_buffer[:-1]
             self.bytes_send_requested.emit([8])
             return True
 
-        if key in (Qt.Key_Tab, Qt.Key_Backtab):
+        if key in (Qt.Key.Key_Tab, Qt.Key.Key_Backtab):
             self.bytes_send_requested.emit([9])
             return True
 
-        if key == Qt.Key_Up:
+        if key == Qt.Key.Key_Up:
             values = self._history_values()
             item, index = get_next_history_item(values, self._history_index, 'up')
             if item is not None:
@@ -407,7 +406,7 @@ class PyteTerminalWidget(QPlainTextEdit):
                 self._set_input_text(item)
             return True
 
-        if key == Qt.Key_Down:
+        if key == Qt.Key.Key_Down:
             values = self._history_values()
             item, index = get_next_history_item(values, self._history_index, 'down')
             if item is not None:

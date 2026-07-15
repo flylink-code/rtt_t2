@@ -6,14 +6,9 @@ import bds.bds_jlink as bds_jk
 import bds.bds_serial as bds_ser
 import bds.bds_waveform as wv
 import config_manager
-from app.qt import (
-    QAction,
-    QEvent,
-    QIcon,
-    QKeySequence,
-    QShortcut,
-    Qt,
-    QTimer,
+from PySide6.QtCore import QEvent, Qt, QTimer
+from PySide6.QtGui import QAction, QIcon, QKeySequence, QShortcut
+from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
     QFrame,
@@ -66,7 +61,7 @@ from app.widgets.send_panel import SendPanel
 from app.workers.hw_reader_worker import HwReaderWorker, thread_lock
 from app.workers.update_checker import DownloadWorker, HwBridge, UpdateCheckerWorker
 
-RTT_VERSION = 'v1.0.7'
+RTT_VERSION = 'v1.0.6'
 
 
 class ConnectionSidebar(QFrame):
@@ -312,7 +307,7 @@ class MainWindow(QMainWindow):
             parent=self,
         )
         for terminal in (self.log_terminal, self.console_terminal):
-            terminal.setContextMenuPolicy(Qt.CustomContextMenu)
+            terminal.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
             terminal.customContextMenuRequested.connect(self._terminal_context_menu)
         self.terminal_stack = QStackedWidget()
         self.terminal_stack.addWidget(self.log_terminal)
@@ -473,17 +468,17 @@ class MainWindow(QMainWindow):
         self.send_panel.input_edit.installEventFilter(self)
 
     def eventFilter(self, obj, event):
-        if obj is self.send_panel.input_edit and event.type() == QEvent.KeyPress:
-            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
-                if event.modifiers() & Qt.ControlModifier:
+        if obj is self.send_panel.input_edit and event.type() == QEvent.Type.KeyPress:
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
                     self._insert_send_newline()
                     return True
                 self._send_data()
                 return True
-            if event.key() == Qt.Key_Up:
+            if event.key() == Qt.Key.Key_Up:
                 self.send_panel.cycle_history('up')
                 return True
-            if event.key() == Qt.Key_Down:
+            if event.key() == Qt.Key.Key_Down:
                 self.send_panel.cycle_history('down')
                 return True
         return super().eventFilter(obj, event)

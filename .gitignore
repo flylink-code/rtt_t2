@@ -10,7 +10,6 @@ logs/
 installer/Files.wxs
 installer/obj/
 *.txt
-!requirements-win7.txt
 *.rar
 *.zip
 *.csv

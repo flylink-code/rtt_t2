@@ -1,6 +1,7 @@
 import math
 
-from app.qt import QBrush, QColor, QIcon, QPainter, QPen, QPixmap, Qt
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QBrush, QColor, QIcon, QPainter, QPen, QPixmap
 
 from app.themes import THEME_DARK, normalize_theme
 

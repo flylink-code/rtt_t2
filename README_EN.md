@@ -1,17 +1,10 @@
-# RTT_T2 v1.0.7
+# RTT_T2 v1.0.6
 
 English | [中文](README.md)
 
 A Windows debugging tool (forked from [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2)) for **J-Link RTT** and **serial** logging, interactive terminals, payload sending, and live waveforms.
 
 > Downloads: [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
-
-> Windows 7 users must download the x64 package with `windows7` in its filename. Standard Windows packages support Windows 10/11 only.
-
-## v1.0.7
-
-- **Windows 7 package**: added a dedicated `windows7` x64 installer that avoids the Python 3.11 runtime incompatibility
-- **Update mirrors**: Gitee is preferred in China, GitHub elsewhere, with automatic fallback
 
 ## v1.0.6
 

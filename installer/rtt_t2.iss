@@ -1,14 +1,8 @@
 #ifndef MyAppReleaseTag
-  #define MyAppReleaseTag "v1.0.7"
+  #define MyAppReleaseTag "v1.0.6"
 #endif
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.7"
-#endif
-#ifndef MyAppOutputSuffix
-  #define MyAppOutputSuffix ""
-#endif
-#ifndef MyAppDistDir
-  #define MyAppDistDir "..\dist\rtt_t2"
+  #define MyAppVersion "1.0.6"
 #endif
 
 #define MyAppName "RTT_T2"
@@ -29,7 +23,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 LicenseFile=
 OutputDir=..\dist
-OutputBaseFilename=rtt_t2-{#MyAppReleaseTag}-windows{#MyAppOutputSuffix}-x64-setup
+OutputBaseFilename=rtt_t2-{#MyAppReleaseTag}-windows-x64-setup
 SetupIconFile=..\tool.ico
 Compression=lzma2
 SolidCompression=yes
@@ -44,7 +38,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加图标:"; Flags: unchecked
 
 [Files]
-Source: "{#MyAppDistDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\rtt_t2\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
