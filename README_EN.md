@@ -1,10 +1,15 @@
-# RTT_T2 v1.0.8
+# RTT_T2 v1.0.9
 
 English | [中文](README.md)
 
 A Windows debugging tool (forked from [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2)) for **J-Link RTT** and **serial** logging, interactive terminals, payload sending, and live waveforms.
 
 > Downloads: [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
+
+## v1.0.9
+
+- **Chip support**: add STM32F429VGTX (mapped to J-Link device STM32F429VG)
+- **RTT Auto Detection**: optional automatic search for the `_SEGGER_RTT` control block
 
 ## v1.0.8
 
@@ -105,7 +110,7 @@ Configure filter expressions under **Tools → Filter**; the status bar shows th
 
 ### Config dialog
 
-- **Connection**: J-Link (vendor-grouped MCU, speed, reset, RTT search range) or serial (COM, baud)
+- **Connection**: J-Link (vendor-grouped MCU, speed, reset, RTT Auto Detection / search range) or serial (COM, baud)
 - **Display & encoding**: utf-8 / asc / hex / gb2312, line ending, **UI theme**
 - **Waveform defaults**: Y range, curve names, axis label
 
@@ -240,7 +245,7 @@ Install SEGGER J-Link or set `JLINK_SDK` to the DLL path.
 
 ### Target connects but no RTT output
 
-Set RTT search range in **Config**, e.g. `0x20000000 0x20000`.
+Choose **Auto Detection** in **Config**, or set RTT search range, e.g. `0x20000000 0x20000`.
 
 ### Filter has no effect in terminal mode
 

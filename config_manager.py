@@ -15,6 +15,9 @@ DEPRECATED_CONFIG_KEYS = (
 DEFAULT_RTT_SEARCH_START = '0x20000000'
 DEFAULT_RTT_SEARCH_SIZE = '0x20000'
 DEFAULT_RTT_BLOCK_ADDRESS = [DEFAULT_RTT_SEARCH_START, DEFAULT_RTT_SEARCH_SIZE]
+RTT_CB_MODE_AUTO = 'auto'
+RTT_CB_MODE_RANGE = 'range'
+DEFAULT_RTT_CB_MODE = RTT_CB_MODE_RANGE
 
 DEFAULT_CONFIG = {
     "jk_chip": [
@@ -68,6 +71,7 @@ DEFAULT_CONFIG = {
         {"name": "示例-回车", "content": "", "tx_type": "ASC"}
     ],
     "rtt_block_address": list(DEFAULT_RTT_BLOCK_ADDRESS),
+    "rtt_cb_mode": DEFAULT_RTT_CB_MODE,
     "log_save_dir": "",
 }
 
@@ -128,6 +132,11 @@ def parse_rtt_search_values(addresses):
     start_hex, size_hex = normalize_rtt_block_address(addresses)
     return int(start_hex, 16), int(size_hex, 16)
 
+def normalize_rtt_cb_mode(value):
+    if value == RTT_CB_MODE_AUTO:
+        return RTT_CB_MODE_AUTO
+    return RTT_CB_MODE_RANGE
+
 def ensure_log_dir():
     log_dir = get_log_dir()
     legacy_dir = os.path.join(get_user_data_dir(), 'aaa_log')
@@ -154,7 +163,9 @@ def load_config():
     config = normalize_chip_config(config)
     old_rtt = config.get('rtt_block_address')
     config['rtt_block_address'] = normalize_rtt_block_address(old_rtt)
-    if migrated or old_rtt != config['rtt_block_address']:
+    old_rtt_mode = config.get('rtt_cb_mode')
+    config['rtt_cb_mode'] = normalize_rtt_cb_mode(old_rtt_mode)
+    if migrated or old_rtt != config['rtt_block_address'] or old_rtt_mode != config['rtt_cb_mode']:
         save_config(config)
     return config
 

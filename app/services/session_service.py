@@ -3,6 +3,7 @@ import time
 
 import bds.bds_serial as bds_ser
 import config_manager
+from app.chip_catalog import resolve_jlink_chip
 
 
 def extract_and_convert_hex(string):
@@ -106,21 +107,31 @@ def jk_open_device(obj, jk_cfg):
         reset_flag=jk_cfg.get('jk_con_reset', True),
         start_address=start_address,
         range_size=range_size,
+        rtt_cb_mode=config_manager.normalize_rtt_cb_mode(jk_cfg.get('rtt_cb_mode')),
     )
 
 
 def jk_connect_log_lines(jk_cfg):
+    chip = jk_cfg['jk_chip'][0]
+    jlink_chip = resolve_jlink_chip(chip)
     lines = [
         '[J_Link LOG]sn:%d\n' % jk_cfg.get('_jk_sn', 0),
         '[J_Link LOG]过滤配置:%s\n' % ','.join(jk_cfg['filter'].split('&&')),
-        '[J_Link LOG]芯片型号:%s\n' % jk_cfg['jk_chip'][0],
+        '[J_Link LOG]芯片型号:%s\n' % chip,
     ]
+    if jlink_chip != chip:
+        lines.append('[J_Link LOG]J-Link设备名:%s\n' % jlink_chip)
     if jk_cfg.get('jk_con_reset', True):
         lines.append('[J_Link LOG]J_Link复位MCU.\n')
     else:
         lines.append('[J_Link LOG]J_Link没有复位MCU.\n')
-    if 'H7' in jk_cfg['jk_chip'][0].upper():
+    if 'H7' in chip.upper():
         lines.append('[J_Link LOG]STM32H7调试时钟: 自动使能\n')
+    if config_manager.normalize_rtt_cb_mode(jk_cfg.get('rtt_cb_mode')) == config_manager.RTT_CB_MODE_AUTO:
+        lines.append('[J_Link LOG]RTT控制块: Auto Detection\n')
+    else:
+        start, size = config_manager.normalize_rtt_block_address(jk_cfg.get('rtt_block_address'))
+        lines.append('[J_Link LOG]RTT控制块: 搜索范围 %s %s\n' % (start, size))
     return lines
 
 

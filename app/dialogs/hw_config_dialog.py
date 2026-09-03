@@ -87,10 +87,29 @@ class HwConfigDialog(QDialog):
         jk_row.addWidget(self.jk_speed_edit)
         jk_row.addWidget(self.jk_reset_check)
         jk_form.addRow(jk_row)
-        jk_form.addRow(
-            '_SEGGER_RTT 地址搜索范围',
-            self.rtt_address_edit,
+
+        rtt_box = QGroupBox('_SEGGER_RTT 控制块')
+        rtt_layout = QVBoxLayout(rtt_box)
+        self.rtt_mode_group = QButtonGroup(self)
+        self.rtt_auto_radio = QRadioButton('Auto Detection')
+        self.rtt_auto_radio.setToolTip(
+            '由 J-Link 按所选芯片的 RAM 区域自动搜索 _SEGGER_RTT 控制块。'
         )
+        self.rtt_range_radio = QRadioButton('搜索范围')
+        self.rtt_mode_group.addButton(self.rtt_auto_radio)
+        self.rtt_mode_group.addButton(self.rtt_range_radio)
+        rtt_range_row = QHBoxLayout()
+        rtt_range_row.addWidget(self.rtt_range_radio)
+        rtt_range_row.addWidget(self.rtt_address_edit)
+        rtt_layout.addWidget(self.rtt_auto_radio)
+        rtt_layout.addLayout(rtt_range_row)
+        if config_manager.normalize_rtt_cb_mode(self.js_cfg.get('rtt_cb_mode')) == config_manager.RTT_CB_MODE_AUTO:
+            self.rtt_auto_radio.setChecked(True)
+        else:
+            self.rtt_range_radio.setChecked(True)
+        self.rtt_auto_radio.toggled.connect(self._sync_rtt_address_enabled)
+        self._sync_rtt_address_enabled()
+        jk_form.addRow(rtt_box)
         connection_layout.addWidget(jk_box)
 
         ser_box = QGroupBox('串口参数')
@@ -207,6 +226,9 @@ class HwConfigDialog(QDialog):
         if default_des:
             self.com_combo.setCurrentText(default_des)
 
+    def _sync_rtt_address_enabled(self):
+        self.rtt_address_edit.setEnabled(self.rtt_range_radio.isChecked())
+
     def _on_iface_changed(self):
         if self.jk_radio.isChecked():
             self.js_cfg['hw_sel'] = '1'
@@ -232,20 +254,24 @@ class HwConfigDialog(QDialog):
 
     def _save(self):
         try:
-            address_text = self.rtt_address_edit.text().strip()
-            if address_text:
-                rtt_block_address = extract_and_convert_hex(address_text)
-                if rtt_block_address is None:
-                    QMessageBox.warning(
-                        self,
-                        '配置错误',
-                        "请输入正确的起始搜索地址以及范围。十六进制字符串必须以 '0x' 或者 '0X' 开头，"
-                        "两个值之间用空格隔开，起始地址必须 4 字节对齐。",
-                    )
-                    return
-                self.js_cfg['rtt_block_address'] = list(rtt_block_address)
+            if self.rtt_auto_radio.isChecked():
+                self.js_cfg['rtt_cb_mode'] = config_manager.RTT_CB_MODE_AUTO
             else:
-                self.js_cfg['rtt_block_address'] = list(config_manager.DEFAULT_RTT_BLOCK_ADDRESS)
+                self.js_cfg['rtt_cb_mode'] = config_manager.RTT_CB_MODE_RANGE
+                address_text = self.rtt_address_edit.text().strip()
+                if address_text:
+                    rtt_block_address = extract_and_convert_hex(address_text)
+                    if rtt_block_address is None:
+                        QMessageBox.warning(
+                            self,
+                            '配置错误',
+                            "请输入正确的起始搜索地址以及范围。十六进制字符串必须以 '0x' 或者 '0X' 开头，"
+                            "两个值之间用空格隔开，起始地址必须 4 字节对齐。",
+                        )
+                        return
+                    self.js_cfg['rtt_block_address'] = list(rtt_block_address)
+                else:
+                    self.js_cfg['rtt_block_address'] = list(config_manager.DEFAULT_RTT_BLOCK_ADDRESS)
 
             self.js_cfg['jk_speed'] = int(self.jk_speed_edit.text())
             self.js_cfg['y_range'][0] = int(self.y_min_edit.text())

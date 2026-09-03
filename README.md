@@ -1,10 +1,15 @@
-# RTT_T2 v1.0.8
+# RTT_T2 v1.0.9
 
 [English](README_EN.md) | 中文
 
 基于 [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2) fork 的 Windows 嵌入式调试工具，面向 **J-Link RTT** 与 **串口** 日志查看、交互终端、数据发送和波形观察。
 
 > 发行版与更新见 [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
+
+## v1.0.9 更新
+
+- **芯片支持**：新增 STM32F429VGTX（连接时映射为 J-Link 设备名 STM32F429VG）
+- **RTT Auto Detection**：配置中可选自动搜索 `_SEGGER_RTT` 控制块，无需手动填写搜索范围
 
 ## v1.0.8 更新
 
@@ -108,7 +113,7 @@ v1.0 起界面由 PySide6 完全重写，整体分为 **工具栏**、**左侧�
 
 分组包括：
 
-- **连接参数**：J-Link（芯片按厂家分组、速度、复位、RTT 搜索范围）或串口（COM、波特率）
+- **连接参数**：J-Link（芯片按厂家分组、速度、复位、RTT Auto Detection / 搜索范围）或串口（COM、波特率）
 - **显示与编码**：utf-8 / asc / hex / gb2312，发送换行符，**界面主题**（深色 / 浅色）
 - **波形默认值**：Y 轴范围、曲线名称、轴名称
 
@@ -246,7 +251,7 @@ TAG=DLOG M*P(x,y,z)\n
 
 ### 芯片识别正常但无 RTT 数据
 
-在 **配置** 中设置 RTT 搜索范围，如 `0x20000000 0x20000`（起始地址 4 字节对齐，`0x` 前缀，空格分隔）。
+在 **配置** 中选择 **Auto Detection**，或设置 RTT 搜索范围，如 `0x20000000 0x20000`（起始地址 4 字节对齐，`0x` 前缀，空格分隔）。
 
 ### 如何添加不支持的芯片
 

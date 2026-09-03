@@ -26,6 +26,7 @@ DEFAULT_CHIP_CATALOG = {
         'STM32F411CE',
         'STM32F412RG',
         'STM32F429NI',
+        'STM32F429VGTX',
         'STM32F446RE',
         'STM32G031F6',
         'STM32G071RB',
@@ -78,6 +79,11 @@ DEFAULT_CHIP_CATALOG = {
     '其他': [],
 }
 
+CHIP_ALIASES = {
+    'STM32F429VGTX': 'STM32F429VG',
+}
+
+
 VENDOR_PREFIXES = (
     ('STM32', '意法半导体 (ST)'),
     ('nRF', 'Nordic'),
@@ -101,6 +107,12 @@ def detect_chip_vendor(chip_name):
         if upper.startswith(prefix.upper()):
             return vendor
     return '其他'
+
+
+def resolve_jlink_chip(chip_name):
+    if not chip_name:
+        return chip_name
+    return CHIP_ALIASES.get(chip_name.upper(), chip_name)
 
 
 def get_chip_catalog(js_cfg):

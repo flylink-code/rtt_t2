@@ -6,6 +6,7 @@ import pylink
 from pylink import library as pylink_library
 
 from bds.hw_base import HardWareBase
+from app.chip_catalog import resolve_jlink_chip
 
 JLINK_DOWNLOAD_URL = 'https://www.segger.com/downloads/jlink/'
 JLINK_DLL_ENV = 'JLINK_SDK'
@@ -229,6 +230,20 @@ class BDS_Jlink(HardWareBase):
         print('未在搜索范围内找到_SEGGER_RTT, 使用固定地址:0x%x' % start_address)
         return start_address
 
+    def _wait_for_rtt_auto_ready(self, timeout_s=RTT_READY_TIMEOUT_S):
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            try:
+                if self.jlink.rtt_get_num_up_buffers() > 0:
+                    return True
+            except Exception:
+                pass
+            time.sleep(0.02)
+        try:
+            return self.jlink.rtt_get_num_up_buffers() > 0
+        except Exception:
+            return False
+
     def _start_rtt(self, block_address, search_start=None, search_size=0):
         self.jlink.swo_flush()
         self.jlink.rtt_stop()
@@ -239,11 +254,14 @@ class BDS_Jlink(HardWareBase):
                 )
             except Exception:
                 pass
-        self.jlink.rtt_start(block_address)
+        if block_address is None:
+            self.jlink.rtt_start()
+        else:
+            self.jlink.rtt_start(block_address)
         self.rtt_is_start = True
 
     def hw_open(self, speed=4000, chip='nRF52840_xxAA', reset_flag=True, start_address=None, range_size=0,
-                sn_no=None):
+                sn_no=None, rtt_cb_mode='range'):
         if not self._ensure_jlink():
             self.err_cb(self._jlink_error + '\n')
             return False
@@ -262,7 +280,7 @@ class BDS_Jlink(HardWareBase):
 
             self.jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
             self.jlink.set_speed(self.speed)
-            self.jlink.connect(self.chip)
+            self.jlink.connect(resolve_jlink_chip(self.chip))
 
             if is_stm32h7_chip(chip):
                 self._enable_stm32h7_debug()
@@ -274,24 +292,32 @@ class BDS_Jlink(HardWareBase):
                     self._enable_stm32h7_debug()
             # else: attach to already-running target without reset
 
-            block_address = self._resolve_rtt_block_address(
-                start_address, range_size, allow_search=not did_reset)
+            auto_rtt = rtt_cb_mode == 'auto'
 
             if self.jlink.connected():
-                if did_reset and block_address is not None:
-                    self._clear_rtt_control_block(block_address)
+                if auto_rtt:
+                    if did_reset or self.jlink.halted():
+                        self._ensure_cpu_running()
+                    self._start_rtt(None)
+                    if not self._wait_for_rtt_auto_ready():
+                        print('等待RTT控制块超时 (Auto Detection, 请确认固件已烧录且RTT已初始化)')
+                else:
+                    block_address = self._resolve_rtt_block_address(
+                        start_address, range_size, allow_search=not did_reset)
 
-                if did_reset or self.jlink.halted():
-                    self._ensure_cpu_running()
+                    if did_reset and block_address is not None:
+                        self._clear_rtt_control_block(block_address)
 
-                if block_address is not None:
-                    if did_reset or not self._is_rtt_cb_valid(block_address):
-                        if not self._wait_for_rtt_ready(block_address):
-                            print('等待RTT控制块超时, 地址:0x%x (请确认固件已烧录且RTT已初始化)' % block_address)
+                    if did_reset or self.jlink.halted():
+                        self._ensure_cpu_running()
 
-                # Start host RTT reader only after target firmware has initialized CB.
-                self._start_rtt(block_address, start_address, range_size)
-                self._log_rtt_cb_status(block_address)
+                    if block_address is not None:
+                        if did_reset or not self._is_rtt_cb_valid(block_address):
+                            if not self._wait_for_rtt_ready(block_address):
+                                print('等待RTT控制块超时, 地址:0x%x (请确认固件已烧录且RTT已初始化)' % block_address)
+
+                    self._start_rtt(block_address, start_address, range_size)
+                    self._log_rtt_cb_status(block_address)
 
                 print('jlink connect success...')
                 self.last_successful_sn = self.jlink.serial_number

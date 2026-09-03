@@ -11,6 +11,7 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 import config_manager
+from app.chip_catalog import resolve_jlink_chip
 from bds.bds_jlink import (
     BDS_Jlink,
     DTCM_RTT_UP_BUF,
@@ -36,7 +37,7 @@ def main():
     jlink.open()
     jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
     jlink.set_speed(cfg.get('jk_speed', 4000))
-    jlink.connect(chip)
+    jlink.connect(resolve_jlink_chip(chip))
 
     hw = BDS_Jlink(lambda m: print(m, end=''), lambda m: print(m, end=''), chip=chip)
     hw.jlink = jlink
