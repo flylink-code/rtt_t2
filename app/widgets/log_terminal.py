@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QColor, QFont, QPalette, QTextCharFormat, QTextCursor
+from PySide6.QtGui import QColor, QFont, QGuiApplication, QKeySequence, QPalette, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import QPlainTextEdit
 
 from app.services.log_service import LEGACY_DEFAULT_LOG_COLOR
@@ -28,6 +28,10 @@ class LogTerminalWidget(QPlainTextEdit):
         self._flush_timer.start()
         self.verticalScrollBar().valueChanged.connect(self._on_scroll)
         self.setReadOnly(True)
+        self.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard
+        )
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.apply_theme_colors(default_text_color, default_bg_color)
 
     def apply_theme_colors(self, fg_color, bg_color):
@@ -83,6 +87,9 @@ class LogTerminalWidget(QPlainTextEdit):
     def _on_scroll(self, value):
         if self._paused:
             return
+        if self.textCursor().hasSelection():
+            self._follow_output = False
+            return
         scrollbar = self.verticalScrollBar()
         self._follow_output = value >= scrollbar.maximum()
 
@@ -94,6 +101,15 @@ class LogTerminalWidget(QPlainTextEdit):
     def _flush_pending(self):
         if not self._pending_segments:
             return
+        if QGuiApplication.mouseButtons() & Qt.MouseButton.LeftButton:
+            return
+
+        selection = self.textCursor()
+        had_selection = selection.hasSelection()
+        start = selection.selectionStart()
+        end = selection.selectionEnd()
+        old_count = self.document().characterCount()
+        select_all = had_selection and start == 0 and end >= max(old_count - 1, 0)
 
         cursor = QTextCursor(self.document())
         cursor.movePosition(QTextCursor.MoveOperation.End)
@@ -111,8 +127,25 @@ class LogTerminalWidget(QPlainTextEdit):
             cursor.setCharFormat(fmt)
             cursor.insertText(text)
 
+        after_insert = self.document().characterCount()
         self._trim_blocks()
-        if not self._paused and self._follow_output:
+        new_count = self.document().characterCount()
+        trimmed = max(after_insert - new_count, 0)
+        if select_all:
+            self.selectAll()
+            self._follow_output = False
+        elif had_selection:
+            restored = QTextCursor(self.document())
+            last = max(new_count - 1, 0)
+            restored.setPosition(min(max(start - trimmed, 0), last))
+            restored.setPosition(
+                min(max(end - trimmed, 0), last),
+                QTextCursor.MoveMode.KeepAnchor,
+            )
+            self.setTextCursor(restored)
+            self._follow_output = False
+
+        if not self._paused and self._follow_output and not had_selection:
             self.scroll_to_bottom()
 
     def _trim_blocks(self):
@@ -131,5 +164,40 @@ class LogTerminalWidget(QPlainTextEdit):
         self._flush_pending()
         return self.toPlainText()
 
+    def select_all_text(self):
+        self._flush_pending()
+        self.selectAll()
+        self._follow_output = False
+
+    def copy_text(self):
+        self._flush_pending()
+        cursor = self.textCursor()
+        if cursor.hasSelection():
+            text = cursor.selectedText().replace('\u2029', '\n')
+        else:
+            text = self.toPlainText()
+        if text:
+            QGuiApplication.clipboard().setText(text)
+
     def should_auto_scroll(self):
         return not self._paused and self._follow_output
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._follow_output = False
+        super().mousePressEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.matches(QKeySequence.StandardKey.SelectAll) or (
+            event.key() == Qt.Key.Key_A and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+        ):
+            self.select_all_text()
+            event.accept()
+            return
+        if event.matches(QKeySequence.StandardKey.Copy) or (
+            event.key() == Qt.Key.Key_C and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+        ):
+            self.copy_text()
+            event.accept()
+            return
+        super().keyPressEvent(event)

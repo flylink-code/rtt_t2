@@ -1,8 +1,8 @@
 #ifndef MyAppReleaseTag
-  #define MyAppReleaseTag "v1.0.9"
+  #define MyAppReleaseTag "v1.0.10"
 #endif
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.9"
+  #define MyAppVersion "1.0.10"
 #endif
 
 #define MyAppName "RTT_T2"

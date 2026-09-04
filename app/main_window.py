@@ -61,7 +61,7 @@ from app.widgets.send_panel import SendPanel
 from app.workers.hw_reader_worker import HwReaderWorker, thread_lock
 from app.workers.update_checker import DownloadWorker, HwBridge, UpdateCheckerWorker
 
-RTT_VERSION = 'v1.0.9'
+RTT_VERSION = 'v1.0.10'
 
 
 class ConnectionSidebar(QFrame):
@@ -688,14 +688,18 @@ class MainWindow(QMainWindow):
         if terminal is None:
             terminal = self._active_terminal()
         menu = QMenu(self)
-        if terminal.textCursor().hasSelection():
-            copy_action = menu.addAction('复制')
-            copy_action.triggered.connect(terminal.copy)
+        select_all_action = menu.addAction('全选')
+        copy_action = menu.addAction('复制')
+        menu.addSeparator()
         save_action = menu.addAction('保存当前日志')
         clear_action = menu.addAction('清除窗口数据')
         scroll_action = menu.addAction('滚动到最底端')
         action = menu.exec(terminal.mapToGlobal(pos))
-        if action == save_action:
+        if action == select_all_action:
+            terminal.select_all_text()
+        elif action == copy_action:
+            terminal.copy_text()
+        elif action == save_action:
             self._save_current_log()
         elif action == clear_action:
             terminal.clear_terminal()

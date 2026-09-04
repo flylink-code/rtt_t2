@@ -151,6 +151,24 @@ class PyteTerminalWidget(QPlainTextEdit):
     def get_all_text(self):
         return self._build_plain_text()
 
+    def select_all_text(self):
+        self.selectAll()
+        self._follow_output = False
+
+    def copy_text(self):
+        cursor = self.textCursor()
+        if cursor.hasSelection():
+            start = cursor.selectionStart()
+            end = cursor.selectionEnd()
+            if start == 0 and end >= max(self.document().characterCount() - 1, 0):
+                text = self.get_all_text()
+            else:
+                text = cursor.selectedText().replace('\u2029', '\n')
+        else:
+            text = self.get_all_text()
+        if text:
+            QGuiApplication.clipboard().setText(text)
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._resize_screen()
@@ -170,11 +188,16 @@ class PyteTerminalWidget(QPlainTextEdit):
         self._dirty = True
 
     def _toggle_cursor_blink(self):
+        if self.textCursor().hasSelection():
+            return
         self._cursor_visible = not self._cursor_visible
         self._dirty = True
 
     def _on_scroll(self, value):
         if self._paused:
+            return
+        if self.textCursor().hasSelection():
+            self._follow_output = False
             return
         scrollbar = self.verticalScrollBar()
         self._follow_output = value >= scrollbar.maximum()
@@ -182,10 +205,19 @@ class PyteTerminalWidget(QPlainTextEdit):
     def _refresh_if_dirty(self):
         if not self._dirty:
             return
+        if QGuiApplication.mouseButtons() & Qt.MouseButton.LeftButton:
+            return
         self._dirty = False
         self._render_screen()
 
     def _render_screen(self):
+        selection = self.textCursor()
+        had_selection = selection.hasSelection()
+        start = selection.selectionStart()
+        end = selection.selectionEnd()
+        old_count = self.document().characterCount()
+        select_all = had_selection and start == 0 and end >= max(old_count - 1, 0)
+
         cursor = QTextCursor(self.document())
         cursor.beginEditBlock()
         cursor.select(QTextCursor.SelectionType.Document)
@@ -203,8 +235,25 @@ class PyteTerminalWidget(QPlainTextEdit):
             self._append_line(cursor, self._screen.buffer[y], default_format, history_count + y, history_count)
 
         cursor.endEditBlock()
-        if not self._paused and self._follow_output:
+
+        new_count = self.document().characterCount()
+        if select_all:
+            self.selectAll()
+            self._follow_output = False
+        elif had_selection:
+            restored = self.textCursor()
+            last = max(new_count - 1, 0)
+            restored.setPosition(min(start, last))
+            restored.setPosition(min(end, last), QTextCursor.MoveMode.KeepAnchor)
+            self.setTextCursor(restored)
+            self._follow_output = False
+        elif not self._paused and self._follow_output:
             self.scroll_to_bottom()
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._follow_output = False
+        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.MouseButton.NoButton:
@@ -363,13 +412,17 @@ class PyteTerminalWidget(QPlainTextEdit):
 
         if key == Qt.Key.Key_C and ctrl:
             if self.textCursor().hasSelection():
-                self.copy()
+                self.copy_text()
             else:
                 self.bytes_send_requested.emit([3])
             return True
 
+        if key == Qt.Key.Key_A and ctrl:
+            self.select_all_text()
+            return True
+
         if key == Qt.Key.Key_Insert and ctrl:
-            self.copy()
+            self.copy_text()
             return True
 
         if key == Qt.Key.Key_V and ctrl:
@@ -423,7 +476,11 @@ class PyteTerminalWidget(QPlainTextEdit):
 
         if event.matches(QKeySequence.StandardKey.Copy):
             if self.textCursor().hasSelection():
-                self.copy()
+                self.copy_text()
+            return True
+
+        if event.matches(QKeySequence.StandardKey.SelectAll):
+            self.select_all_text()
             return True
 
         return False
