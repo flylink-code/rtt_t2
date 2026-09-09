@@ -253,6 +253,7 @@ class PyteTerminalWidget(QPlainTextEdit):
             self.scroll_to_bottom()
 
     def mousePressEvent(self, event):
+        self.setFocus(Qt.FocusReason.MouseFocusReason)
         if event.button() == Qt.MouseButton.LeftButton:
             self._follow_output = False
         super().mousePressEvent(event)
@@ -376,11 +377,12 @@ class PyteTerminalWidget(QPlainTextEdit):
         return ''.join(chars).rstrip()
 
     def _line_ending_bytes(self):
-        if self._line_break in ('\r\n', '\r'):
+        ending = self._line_break
+        if ending is None:
             return [13]
-        if self._line_break == '\n':
-            return [10]
-        return [13]
+        if ending == '':
+            return []
+        return list(ending.encode('utf-8'))
 
     def _send_payload(self, payload, echo_text=None):
         if payload:
@@ -441,15 +443,15 @@ class PyteTerminalWidget(QPlainTextEdit):
         return super().inputMethodQuery(query)
 
     def inputMethodEvent(self, event):
-        if event.preeditString():
-            self._composing = True
+        preedit = event.preeditString()
         commit = event.commitString()
         if commit:
             self._send_user_text(commit)
-            self._composing = False
-        elif not event.preeditString():
-            self._composing = False
-        event.accept()
+        self._composing = bool(preedit)
+        if commit or preedit:
+            event.accept()
+        else:
+            super().inputMethodEvent(event)
         im = QGuiApplication.inputMethod()
         if im is not None:
             im.update(Qt.InputMethodQuery.ImCursorRectangle)
@@ -479,12 +481,19 @@ class PyteTerminalWidget(QPlainTextEdit):
         self._send_payload(ending, echo)
 
     def keyPressEvent(self, event):
-        im = QGuiApplication.inputMethod()
-        if self._composing or (im is not None and im.isVisible() and event.text() and not (
-            event.modifiers() & Qt.KeyboardModifier.ControlModifier
-        )):
+        key = event.key()
+        ctrl = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+        if self._composing and not ctrl and key not in (
+            Qt.Key.Key_Return,
+            Qt.Key.Key_Enter,
+            Qt.Key.Key_Escape,
+            Qt.Key.Key_Backspace,
+            Qt.Key.Key_Tab,
+        ):
             event.accept()
             return
+        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Escape):
+            self._composing = False
         self._handle_key(event)
         event.accept()
 
@@ -516,7 +525,7 @@ class PyteTerminalWidget(QPlainTextEdit):
             self.paste_text()
             return
 
-        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter) or event.text() in ('\r', '\n'):
             self._commit_input_line()
             return
 

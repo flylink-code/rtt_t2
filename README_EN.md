@@ -1,10 +1,15 @@
-# RTT_T2 v1.0.11
+# RTT_T2 v1.0.12
 
 English | [中文](README.md)
 
 A Windows debugging tool (forked from [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2)) for **J-Link RTT** and **serial** logging, interactive terminals, payload sending, and live waveforms.
 
 > Downloads: [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
+
+## v1.0.12
+
+- **Terminal input**: IME no longer swallows keys and Enter, so RT-Thread MSH prompts work
+- **Terminal output**: RX is also fed to the terminal view in log mode, so switching is not blank
 
 ## v1.0.11
 

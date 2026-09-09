@@ -61,7 +61,7 @@ from app.widgets.send_panel import SendPanel
 from app.workers.hw_reader_worker import HwReaderWorker, thread_lock
 from app.workers.update_checker import DownloadWorker, HwBridge, UpdateCheckerWorker
 
-RTT_VERSION = 'v1.0.11'
+RTT_VERSION = 'v1.0.12'
 
 
 class ConnectionSidebar(QFrame):
@@ -262,7 +262,7 @@ class MainWindow(QMainWindow):
         self._sync_terminal_console_settings()
         self.text_searcher.set_text_widget(self._active_terminal())
         if terminal_mode:
-            self.console_terminal.setFocus()
+            self.console_terminal.setFocus(Qt.FocusReason.OtherFocusReason)
         else:
             self.send_panel.focus_input()
         self._refresh_status()
@@ -756,7 +756,7 @@ class MainWindow(QMainWindow):
     def _on_console_bytes_send(self, byte_list):
         if not is_terminal_layout(self.js_cfg) or not self.hw_obj.hw_is_open():
             return
-        payload = list(byte_list)
+        payload = [int(item) & 0xFF for item in byte_list]
         if not payload:
             return
         self.hw_obj.hw_write(payload)
@@ -832,11 +832,15 @@ class MainWindow(QMainWindow):
         self.console_terminal.set_line_break(self.js_cfg['line_break'])
 
     def _poll_logs(self):
-        if is_terminal_layout(self.js_cfg):
-            result = self._poll_terminal_rx()
-        else:
-            result = self.log_processor.process_queue(
-                self.hw_obj,
+        raw_log = []
+        self.hw_obj.read_data_queue(raw_log)
+        if not raw_log:
+            return
+        text = ''.join(raw_log)
+        result = self._apply_terminal_rx(text)
+        if not is_terminal_layout(self.js_cfg):
+            result = self.log_processor.process_raw(
+                raw_log,
                 self.js_cfg,
                 bool(self.js_cfg.get('filter_en', False)),
                 self.js_cfg.get('filter', ''),
@@ -855,22 +859,16 @@ class MainWindow(QMainWindow):
                 self.rx_bytes += result['size']
                 self._refresh_status()
 
-    def _poll_terminal_rx(self):
-        raw_log = []
-        self.hw_obj.read_data_queue(raw_log)
-        if not raw_log:
+    def _apply_terminal_rx(self, text):
+        if not text:
             return None
-
-        text = ''.join(raw_log)
         if self.js_cfg['char_format'] == 'hex':
             self.console_terminal.feed_text(text)
             return {'save_text': text, 'size': len(text)}
-
-        if db_data_check_error(text):
+        if self.js_cfg['char_format'] == 'asc' and db_data_check_error(text):
             error_text = "RTT数据出错，可能需要重启设备！ + error data:[" + text[0:20] + "]\n"
             self.console_terminal.feed_text(error_text)
             return {'save_text': '', 'size': 0}
-
         self.console_terminal.feed_text(text)
         return {'save_text': text, 'size': len(text)}
 

@@ -1,10 +1,15 @@
-# RTT_T2 v1.0.11
+# RTT_T2 v1.0.12
 
 [English](README_EN.md) | 中文
 
 基于 [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2) fork 的 Windows 嵌入式调试工具，面向 **J-Link RTT** 与 **串口** 日志查看、交互终端、数据发送和波形观察。
 
 > 发行版与更新见 [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
+
+## v1.0.12 更新
+
+- **终端输入修复**：中文输入法不再吞掉按键和回车，RT-Thread MSH 可正常出提示符
+- **终端输出**：日志模式下收到的数据会同步到终端视图，切换后不再空白
 
 ## v1.0.11 更新
 

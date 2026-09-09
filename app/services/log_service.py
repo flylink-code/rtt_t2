@@ -107,6 +107,9 @@ class LogProcessor:
     def process_queue(self, hw_obj, js_cfg, filter_enabled, filter_text, filter_inverse):
         raw_log = []
         hw_obj.read_data_queue(raw_log)
+        return self.process_raw(raw_log, js_cfg, filter_enabled, filter_text, filter_inverse)
+
+    def process_raw(self, raw_log, js_cfg, filter_enabled, filter_text, filter_inverse):
         if not raw_log:
             return None
 
