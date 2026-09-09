@@ -1,9 +1,7 @@
 import pyte
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QFont, QGuiApplication, QKeySequence, QPalette, QTextCharFormat, QTextCursor
+from PySide6.QtGui import QColor, QFont, QGuiApplication, QPalette, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import QPlainTextEdit
-
-from app.services.session_service import get_next_history_item
 
 PYTE_FG_COLORS = {
     'black': '#000000',
@@ -56,10 +54,11 @@ class PyteTerminalWidget(QPlainTextEdit):
         self.setObjectName('logTerminal')
         self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.setFont(QFont(font_family, int(font_size)))
-        self.setReadOnly(True)
-        self.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard
-        )
+        self.setReadOnly(False)
+        self.setTextInteractionFlags(Qt.TextInteractionFlag.TextEditorInteraction)
+        self.setAttribute(Qt.WidgetAttribute.WA_InputMethodEnabled, True)
+        self.setInputMethodHints(Qt.InputMethodHint.ImhNoAutoUppercase | Qt.InputMethodHint.ImhNoPredictiveText)
+        self.document().setUndoRedoEnabled(False)
         self.setCursorWidth(0)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._default_text_color = default_text_color
@@ -69,8 +68,8 @@ class PyteTerminalWidget(QPlainTextEdit):
         self._dirty = False
         self._line_break = '\n'
         self._input_buffer = ''
-        self._history_index = 0
-        self._history_provider = None
+        self._local_echo = True
+        self._composing = False
         self._cols = self.FIXED_COLS
         self._rows = 30
         self._cursor_visible = True
@@ -100,8 +99,11 @@ class PyteTerminalWidget(QPlainTextEdit):
     def set_line_break(self, line_break):
         self._line_break = line_break or ''
 
-    def set_history_provider(self, provider):
-        self._history_provider = provider
+    def set_local_echo(self, enabled):
+        self._local_echo = bool(enabled)
+
+    def local_echo(self):
+        return self._local_echo
 
     def set_paused(self, paused):
         self._paused = paused
@@ -380,107 +382,178 @@ class PyteTerminalWidget(QPlainTextEdit):
             return [10]
         return [13]
 
-    def _history_values(self):
-        if self._history_provider is not None:
-            return self._history_provider() or []
-        return []
+    def _send_payload(self, payload, echo_text=None):
+        if payload:
+            self.bytes_send_requested.emit(payload)
+        if self._local_echo and echo_text:
+            self.feed_text(echo_text)
+        self._follow_output = True
 
-    def _set_input_text(self, text):
-        if self._input_buffer:
-            self.bytes_send_requested.emit([8] * len(self._input_buffer))
-        self._input_buffer = text
-        if text:
-            self.bytes_send_requested.emit(list(text.encode('utf-8')))
+    def _send_user_text(self, text):
+        if not text:
+            return
+        normalized = text.replace('\r\n', '\n').replace('\r', '\n')
+        parts = normalized.split('\n')
+        for index, part in enumerate(parts):
+            if part:
+                self._input_buffer += part
+                self._send_payload(list(part.encode('utf-8')), part if self._local_echo else None)
+            if index != len(parts) - 1:
+                self._commit_input_line()
+
+    def _pyte_cursor_rect(self):
+        history_count = len(self._screen.history.top)
+        line = max(history_count + self._screen.cursor.y, 0)
+        col = max(self._screen.cursor.x, 0)
+        block = self.document().findBlockByNumber(line)
+        cursor = QTextCursor(self.document())
+        if block.isValid():
+            cursor = QTextCursor(block)
+            if col > 0:
+                cursor.movePosition(
+                    QTextCursor.MoveOperation.Right,
+                    QTextCursor.MoveMode.MoveAnchor,
+                    min(col, block.length()),
+                )
+        else:
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+        rect = self.cursorRect(cursor)
+        if rect.width() < 2:
+            rect.setWidth(max(self.fontMetrics().horizontalAdvance('M'), 8))
+        if rect.height() < 2:
+            rect.setHeight(self.fontMetrics().height())
+        return rect
+
+    def inputMethodQuery(self, query):
+        query = Qt.InputMethodQuery(query)
+        if query == Qt.InputMethodQuery.ImEnabled:
+            return True
+        if query in (Qt.InputMethodQuery.ImCursorRectangle, Qt.InputMethodQuery.ImAnchorRectangle):
+            return self._pyte_cursor_rect()
+        if query == Qt.InputMethodQuery.ImCursorPosition:
+            return len(self._input_buffer)
+        if query == Qt.InputMethodQuery.ImSurroundingText:
+            return self._input_buffer
+        if query == Qt.InputMethodQuery.ImCurrentSelection:
+            return ''
+        if query == Qt.InputMethodQuery.ImAnchorPosition:
+            return len(self._input_buffer)
+        return super().inputMethodQuery(query)
+
+    def inputMethodEvent(self, event):
+        if event.preeditString():
+            self._composing = True
+        commit = event.commitString()
+        if commit:
+            self._send_user_text(commit)
+            self._composing = False
+        elif not event.preeditString():
+            self._composing = False
+        event.accept()
+        im = QGuiApplication.inputMethod()
+        if im is not None:
+            im.update(Qt.InputMethodQuery.ImCursorRectangle)
+
+    def insertFromMimeData(self, source):
+        if source is not None and source.hasText():
+            self._send_user_text(source.text())
+            return
+        super().insertFromMimeData(source)
+
+    def canInsertFromMimeData(self, source):
+        return source is not None and source.hasText()
+
+    def paste_text(self, text=None):
+        if text is None:
+            text = QGuiApplication.clipboard().text()
+        self._send_user_text(text)
 
     def _commit_input_line(self):
         line = self._input_buffer
         self._input_buffer = ''
         self.line_committed.emit(line)
         ending = self._line_ending_bytes()
-        if ending:
-            self.bytes_send_requested.emit(ending)
+        echo = None
+        if self._local_echo:
+            echo = '\r\n' if self._line_break == '\r\n' else '\n'
+        self._send_payload(ending, echo)
 
     def keyPressEvent(self, event):
-        if self._handle_key(event):
+        im = QGuiApplication.inputMethod()
+        if self._composing or (im is not None and im.isVisible() and event.text() and not (
+            event.modifiers() & Qt.KeyboardModifier.ControlModifier
+        )):
+            event.accept()
             return
-        super().keyPressEvent(event)
+        self._handle_key(event)
+        event.accept()
 
     def _handle_key(self, event):
         key = event.key()
         modifiers = event.modifiers()
-        ctrl = modifiers & Qt.KeyboardModifier.ControlModifier
+        ctrl = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
+        alt = bool(modifiers & Qt.KeyboardModifier.AltModifier)
+
+        if key in (Qt.Key.Key_Shift, Qt.Key.Key_Control, Qt.Key.Key_Alt, Qt.Key.Key_Meta, Qt.Key.Key_AltGr):
+            return
 
         if key == Qt.Key.Key_C and ctrl:
             if self.textCursor().hasSelection():
                 self.copy_text()
             else:
-                self.bytes_send_requested.emit([3])
-            return True
+                self._send_payload([3])
+            return
 
         if key == Qt.Key.Key_A and ctrl:
             self.select_all_text()
-            return True
+            return
 
         if key == Qt.Key.Key_Insert and ctrl:
             self.copy_text()
-            return True
+            return
 
-        if key == Qt.Key.Key_V and ctrl:
-            text = QGuiApplication.clipboard().text()
-            if text:
-                for char in text:
-                    if char in ('\r', '\n'):
-                        self._commit_input_line()
-                        break
-                    if char >= ' ' or char == '\t':
-                        self._input_buffer += char
-                        self.bytes_send_requested.emit([ord(char)])
-            return True
+        if (key == Qt.Key.Key_V and ctrl) or (key == Qt.Key.Key_Insert and modifiers & Qt.KeyboardModifier.ShiftModifier):
+            self.paste_text()
+            return
 
         if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self._commit_input_line()
-            return True
+            return
 
         if key == Qt.Key.Key_Backspace:
             if self._input_buffer:
                 self._input_buffer = self._input_buffer[:-1]
-            self.bytes_send_requested.emit([8])
-            return True
+            echo = '\b \b' if self._local_echo else None
+            self._send_payload([8], echo)
+            return
 
         if key in (Qt.Key.Key_Tab, Qt.Key.Key_Backtab):
-            self.bytes_send_requested.emit([9])
-            return True
+            self._send_payload([9])
+            return
 
-        if key == Qt.Key.Key_Up:
-            values = self._history_values()
-            item, index = get_next_history_item(values, self._history_index, 'up')
-            if item is not None:
-                self._history_index = index
-                self._set_input_text(item)
-            return True
+        if key == Qt.Key.Key_Escape:
+            self._send_payload([27])
+            return
 
-        if key == Qt.Key.Key_Down:
-            values = self._history_values()
-            item, index = get_next_history_item(values, self._history_index, 'down')
-            if item is not None:
-                self._history_index = index
-                self._set_input_text(item)
-            return True
+        ansi_keys = {
+            Qt.Key.Key_Up: [27, 91, 65],
+            Qt.Key.Key_Down: [27, 91, 66],
+            Qt.Key.Key_Right: [27, 91, 67],
+            Qt.Key.Key_Left: [27, 91, 68],
+            Qt.Key.Key_Home: [27, 91, 72],
+            Qt.Key.Key_End: [27, 91, 70],
+            Qt.Key.Key_Delete: [27, 91, 51, 126],
+            Qt.Key.Key_PageUp: [27, 91, 53, 126],
+            Qt.Key.Key_PageDown: [27, 91, 54, 126],
+        }
+        if key in ansi_keys:
+            self._send_payload(ansi_keys[key])
+            return
+
+        if ctrl and not alt and Qt.Key.Key_A <= key <= Qt.Key.Key_Z:
+            self._send_payload([key - Qt.Key.Key_A + 1])
+            return
 
         text = event.text()
-        if text and text >= ' ':
-            for char in text:
-                self._input_buffer += char
-                self.bytes_send_requested.emit([ord(char)])
-            return True
-
-        if event.matches(QKeySequence.StandardKey.Copy):
-            if self.textCursor().hasSelection():
-                self.copy_text()
-            return True
-
-        if event.matches(QKeySequence.StandardKey.SelectAll):
-            self.select_all_text()
-            return True
-
-        return False
+        if text and text >= ' ' and not alt:
+            self._send_user_text(text)

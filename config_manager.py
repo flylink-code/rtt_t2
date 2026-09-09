@@ -65,7 +65,8 @@ DEFAULT_CONFIG = {
     "ui_layout": "log",
     "terminal_autoscroll": True,
     "terminal_paused": False,
-    "send_panel_mode": "expanded",
+    "send_panel_mode": "compact",
+    "terminal_local_echo": True,
     "custom_commands": [
         {"name": "示例-帮助", "content": "help", "tx_type": "ASC"},
         {"name": "示例-回车", "content": "", "tx_type": "ASC"}

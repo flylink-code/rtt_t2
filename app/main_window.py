@@ -6,7 +6,7 @@ import bds.bds_jlink as bds_jk
 import bds.bds_serial as bds_ser
 import bds.bds_waveform as wv
 import config_manager
-from PySide6.QtCore import QEvent, Qt, QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
@@ -61,7 +61,7 @@ from app.widgets.send_panel import SendPanel
 from app.workers.hw_reader_worker import HwReaderWorker, thread_lock
 from app.workers.update_checker import DownloadWorker, HwBridge, UpdateCheckerWorker
 
-RTT_VERSION = 'v1.0.10'
+RTT_VERSION = 'v1.0.11'
 
 
 class ConnectionSidebar(QFrame):
@@ -263,11 +263,13 @@ class MainWindow(QMainWindow):
         self.text_searcher.set_text_widget(self._active_terminal())
         if terminal_mode:
             self.console_terminal.setFocus()
+        else:
+            self.send_panel.focus_input()
         self._refresh_status()
 
     def _sync_terminal_console_settings(self):
         self.console_terminal.set_line_break(self.js_cfg.get('line_break', '\n'))
-        self.console_terminal.set_history_provider(lambda: self.js_cfg.get('user_input_data', []))
+        self.console_terminal.set_local_echo(self.js_cfg.get('terminal_local_echo', True))
 
     def _build_ui(self):
         self.setWindowTitle('%s %s' % (APP_DISPLAY_NAME, RTT_VERSION))
@@ -417,7 +419,7 @@ class MainWindow(QMainWindow):
         self._refresh_theme_toggle()
 
     def _bind_shortcuts(self):
-        QShortcut(QKeySequence('Ctrl+Return'), self.send_panel.input_edit, activated=self._insert_send_newline)
+        QShortcut(QKeySequence('Ctrl+Return'), self.send_panel.input_edit, activated=self.send_panel.insert_newline)
 
     def _connect_signals(self):
         self.connect_action.triggered.connect(self._toggle_connection)
@@ -449,6 +451,7 @@ class MainWindow(QMainWindow):
         self.about_action.triggered.connect(self._open_about_dialog)
         self.send_panel.send_requested.connect(self._send_data)
         self.send_panel.history_delete_requested.connect(self._delete_history_item)
+        self.send_panel.mode_changed.connect(self._on_send_panel_mode_changed)
 
         self.sidebar.jk_radio.toggled.connect(self._on_mode_radio_changed)
         self.sidebar.ser_radio.toggled.connect(self._on_mode_radio_changed)
@@ -465,28 +468,9 @@ class MainWindow(QMainWindow):
         self.hw_bridge.error.connect(self._on_hw_error)
         self.hw_bridge.warn.connect(self._on_hw_warn)
 
-        self.send_panel.input_edit.installEventFilter(self)
-
-    def eventFilter(self, obj, event):
-        if obj is self.send_panel.input_edit and event.type() == QEvent.Type.KeyPress:
-            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-                if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-                    self._insert_send_newline()
-                    return True
-                self._send_data()
-                return True
-            if event.key() == Qt.Key.Key_Up:
-                self.send_panel.cycle_history('up')
-                return True
-            if event.key() == Qt.Key.Key_Down:
-                self.send_panel.cycle_history('down')
-                return True
-        return super().eventFilter(obj, event)
-
-    def _insert_send_newline(self):
-        cursor = self.send_panel.input_edit.textCursor()
-        cursor.insertText('\n')
-        self.send_panel.input_edit.setTextCursor(cursor)
+    def _on_send_panel_mode_changed(self, mode):
+        self.js_cfg['send_panel_mode'] = mode
+        config_manager.save_config(self.js_cfg)
 
     def _on_mode_radio_changed(self):
         if self.connected:
@@ -690,6 +674,13 @@ class MainWindow(QMainWindow):
         menu = QMenu(self)
         select_all_action = menu.addAction('全选')
         copy_action = menu.addAction('复制')
+        paste_action = None
+        echo_action = None
+        if terminal is self.console_terminal:
+            paste_action = menu.addAction('粘贴')
+            echo_action = menu.addAction('本地回显')
+            echo_action.setCheckable(True)
+            echo_action.setChecked(self.console_terminal.local_echo())
         menu.addSeparator()
         save_action = menu.addAction('保存当前日志')
         clear_action = menu.addAction('清除窗口数据')
@@ -699,6 +690,13 @@ class MainWindow(QMainWindow):
             terminal.select_all_text()
         elif action == copy_action:
             terminal.copy_text()
+        elif paste_action is not None and action == paste_action:
+            self.console_terminal.paste_text()
+        elif echo_action is not None and action == echo_action:
+            enabled = echo_action.isChecked()
+            self.console_terminal.set_local_echo(enabled)
+            self.js_cfg['terminal_local_echo'] = enabled
+            config_manager.save_config(self.js_cfg)
         elif action == save_action:
             self._save_current_log()
         elif action == clear_action:
@@ -750,6 +748,8 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, '发送错误', message)
             return
         self.send_panel.set_history(self.js_cfg['user_input_data'])
+        self.send_panel.clear_input()
+        self.send_panel.focus_input()
         self.tx_bytes += sent
         self._refresh_status()
 

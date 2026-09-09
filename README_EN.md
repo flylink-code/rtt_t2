@@ -1,10 +1,15 @@
-# RTT_T2 v1.0.10
+# RTT_T2 v1.0.11
 
 English | [中文](README.md)
 
 A Windows debugging tool (forked from [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2)) for **J-Link RTT** and **serial** logging, interactive terminals, payload sending, and live waveforms.
 
 > Downloads: [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
+
+## v1.0.11
+
+- **In-terminal typing**: type directly in the terminal view (Xshell / MobaXterm style) with IME, UTF-8, and local echo
+- **Log send bar**: log mode keeps the bottom command bar (Enter to send, history, optional multi-line)
 
 ## v1.0.10
 
@@ -97,9 +102,9 @@ v1.0 is a full PySide6 rewrite. The window is organized as **toolbar**, **left s
 | Mode | Behavior |
 |------|----------|
 | **Log** | Read-only viewer with BDSCOL colors, filters, pause-follow, context menu |
-| **Terminal** | Interactive `pyte` terminal with ANSI, history, Tab, Ctrl+C |
+| **Terminal** | Type directly in the terminal (Xshell / MobaXterm style): IME, local echo, Tab / Ctrl+C / arrows |
 
-In **terminal mode** the bottom send panel is hidden; typing happens in the main area. In **log mode** the send panel is used for ASC / HEX payloads.
+**Terminal mode** types directly in the main view (no bottom command bar). Use context-menu **Local echo** if the target does not echo. **Log mode** still uses the bottom command bar for ASC / HEX. Enable **Multi-line** for the old multi-line send box.
 
 ### Menus
 
@@ -130,9 +135,9 @@ Configure filter expressions under **Tools → Filter**; the status bar shows th
 | J-Link RTT | utf-8 / asc; channel 0 only |
 | Serial | utf-8 / asc / hex |
 | Log mode | Colors, line filter, pause, Ctrl+F, save all |
-| Terminal mode | MSH / shell, Enter / Tab / history / Ctrl+C |
+| Terminal mode | Type in the terminal (IME, local echo, Tab / Ctrl+C / arrows) |
 | Waveform | Up to 3 curves, drag, stats, CSV export |
-| Send panel | ASC / HEX, multiline, history, comments |
+| Send panel | Log mode only: command bar (Enter, history, IME); optional multiline / ASC / HEX |
 
 ## Requirements
 
