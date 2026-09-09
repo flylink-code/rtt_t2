@@ -66,7 +66,7 @@ DEFAULT_CONFIG = {
     "terminal_autoscroll": True,
     "terminal_paused": False,
     "send_panel_mode": "compact",
-    "terminal_local_echo": True,
+    "terminal_local_echo": False,
     "custom_commands": [
         {"name": "示例-帮助", "content": "help", "tx_type": "ASC"},
         {"name": "示例-回车", "content": "", "tx_type": "ASC"}

@@ -1,10 +1,14 @@
-# RTT_T2 v1.0.12
+# RTT_T2 v1.0.13
 
 [English](README_EN.md) | 中文
 
 基于 [lh-hg/rtt_t2](https://github.com/lh-hg/rtt_t2) fork 的 Windows 嵌入式调试工具，面向 **J-Link RTT** 与 **串口** 日志查看、交互终端、数据发送和波形观察。
 
 > 发行版与更新见 [GitHub Releases](https://github.com/flylink-code/rtt_t2/releases)
+
+## v1.0.13 更新
+
+- **终端回显**：关闭默认本地回显，避免与 MSH 回显叠成重复字符；中文输入法同一按键不再发送两次
 
 ## v1.0.12 更新
 

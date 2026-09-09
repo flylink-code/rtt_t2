@@ -61,7 +61,7 @@ from app.widgets.send_panel import SendPanel
 from app.workers.hw_reader_worker import HwReaderWorker, thread_lock
 from app.workers.update_checker import DownloadWorker, HwBridge, UpdateCheckerWorker
 
-RTT_VERSION = 'v1.0.12'
+RTT_VERSION = 'v1.0.13'
 
 
 class ConnectionSidebar(QFrame):
@@ -269,7 +269,7 @@ class MainWindow(QMainWindow):
 
     def _sync_terminal_console_settings(self):
         self.console_terminal.set_line_break(self.js_cfg.get('line_break', '\n'))
-        self.console_terminal.set_local_echo(self.js_cfg.get('terminal_local_echo', True))
+        self.console_terminal.set_local_echo(self.js_cfg.get('terminal_local_echo', False))
 
     def _build_ui(self):
         self.setWindowTitle('%s %s' % (APP_DISPLAY_NAME, RTT_VERSION))

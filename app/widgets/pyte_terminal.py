@@ -68,8 +68,13 @@ class PyteTerminalWidget(QPlainTextEdit):
         self._dirty = False
         self._line_break = '\n'
         self._input_buffer = ''
-        self._local_echo = True
+        self._local_echo = False
         self._composing = False
+        self._last_sent_text = ''
+        self._dup_clear_timer = QTimer(self)
+        self._dup_clear_timer.setSingleShot(True)
+        self._dup_clear_timer.setInterval(0)
+        self._dup_clear_timer.timeout.connect(self._clear_last_sent_text)
         self._cols = self.FIXED_COLS
         self._rows = 30
         self._cursor_visible = True
@@ -104,6 +109,21 @@ class PyteTerminalWidget(QPlainTextEdit):
 
     def local_echo(self):
         return self._local_echo
+
+    def _clear_last_sent_text(self):
+        self._last_sent_text = ''
+
+    def _is_duplicate_input(self, text):
+        pending = self._last_sent_text
+        if not text or not pending:
+            return False
+        if text == pending:
+            self._last_sent_text = ''
+            return True
+        if pending.startswith(text):
+            self._last_sent_text = pending[len(text):]
+            return True
+        return False
 
     def set_paused(self, paused):
         self._paused = paused
@@ -394,6 +414,10 @@ class PyteTerminalWidget(QPlainTextEdit):
     def _send_user_text(self, text):
         if not text:
             return
+        if self._is_duplicate_input(text):
+            return
+        self._last_sent_text = text
+        self._dup_clear_timer.start()
         normalized = text.replace('\r\n', '\n').replace('\r', '\n')
         parts = normalized.split('\n')
         for index, part in enumerate(parts):
