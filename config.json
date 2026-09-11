@@ -19,6 +19,7 @@
             "STM32F411CE",
             "STM32F412RG",
             "STM32F429NI",
+            "STM32F429VGTX",
             "STM32F446RE",
             "STM32G031F6",
             "STM32G071RB",
@@ -44,14 +45,14 @@
         "恩智浦 (NXP)": [
             "LPC1768",
             "LPC4088FET208",
-            "MKL27Z64xxx4",
-            "MK64FN1M0xxx12",
             "MIMXRT1052xxxxB",
-            "MIMXRT1062xxxxA"
+            "MIMXRT1062xxxxA",
+            "MK64FN1M0xxx12",
+            "MKL27Z64xxx4"
         ],
         "微芯 (Microchip)": [
-            "ATSAMD21G18A",
             "ATSAM3X8E",
+            "ATSAMD21G18A",
             "ATSAME70Q20"
         ],
         "兆易创新 (GD)": [
@@ -73,7 +74,7 @@
     "jk_interface": [
         "SWD"
     ],
-    "jk_con_reset": false,
+    "jk_con_reset": true,
     "jk_speed": 4000,
     "hw_sel": "1",
     "filter": "",
@@ -85,6 +86,7 @@
     "font_size": "13",
     "tx_line": "\n",
     "user_input_data": [
+        "ls",
         "123"
     ],
     "curves_name": "X&&Y&&Z",
@@ -101,13 +103,13 @@
         9600,
         19200
     ],
-    "ser_com": "COM1",
-    "ser_des": "通信端口 (COM1)",
+    "ser_com": "COM101",
+    "ser_des": "ELTIMA Virtual Serial Port (COM101->COM102)",
     "char_format": "asc",
     "update_flag": true,
     "line_break": "\n",
-    "ui_theme": "dark",
-    "ui_layout": "log",
+    "ui_theme": "light",
+    "ui_layout": "terminal",
     "terminal_autoscroll": true,
     "terminal_paused": false,
     "send_panel_mode": "expanded",
@@ -124,7 +126,12 @@
         }
     ],
     "rtt_block_address": [
-        "",
-        ""
-    ]
+        "0x20000000",
+        "0x20000"
+    ],
+    "rtt_cb_mode": "range",
+    "search_history": [],
+    "_jk_sn": 69406686,
+    "log_save_dir": "E:/W-Tool/rtt_t2/logs",
+    "filter_inverse": false
 }
